@@ -92,14 +92,18 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: isStressed ? 0.7 : 0.4 }}
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <h2 className="text-xs text-muted-foreground font-body uppercase tracking-widest">Eat Smart Today</h2>
             <span className="text-xs font-body text-muted-foreground">{dietLabel}</span>
           </div>
 
+          <p className="text-xs text-muted-foreground font-body mb-2">
+            Daily target: <span className="text-foreground font-medium">{target} kcal</span>
+          </p>
+
           {checkIn.kitchenInput && (
             <p className="text-xs text-muted-foreground font-body mb-4 italic">
-              Based on what you have: {checkIn.kitchenInput}
+              Prioritised meals with: {checkIn.kitchenInput}
             </p>
           )}
 
@@ -109,9 +113,14 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
                 key={slot.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: (isStressed ? 0.8 : 0.5) + slotIdx * 0.2 }}
+                transition={{ delay: (isStressed ? 0.8 : 0.5) + slotIdx * 0.15 }}
               >
-                <p className="text-sm font-body font-medium text-foreground mb-3">{slot.label} — pick one</p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-body font-medium text-foreground">
+                    {slot.emoji} {slot.label}
+                  </p>
+                  <span className="text-xs font-body text-muted-foreground">~{slot.targetKcal} kcal</span>
+                </div>
                 <div className="space-y-3">
                   {slot.options.map((recipe, optIdx) => {
                     const isSelected = selections[slotIdx] === optIdx;
