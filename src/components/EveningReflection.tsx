@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ScreenNav from '@/components/ScreenNav';
 
 interface Props {
   onComplete: (reflection: string) => void;
+  onBack?: () => void;
 }
 
 const options = [
@@ -11,7 +13,7 @@ const options = [
   { id: 'not_today', label: 'Not today', emoji: '🌙', response: "That's alright. Consistency isn't perfection. Tomorrow is a fresh start." },
 ];
 
-export default function EveningReflection({ onComplete }: Props) {
+export default function EveningReflection({ onComplete, onBack }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
 
   const selectedOption = options.find((o) => o.id === selected);
@@ -19,6 +21,8 @@ export default function EveningReflection({ onComplete }: Props) {
   return (
     <div className="min-h-screen bg-background vitale-gradient flex items-center justify-center px-6">
       <div className="w-full max-w-[520px]">
+        <ScreenNav onBack={onBack} title="Reflection" />
+
         <motion.h1
           className="font-heading text-3xl font-semibold mb-10"
           initial={{ opacity: 0, y: 20 }}

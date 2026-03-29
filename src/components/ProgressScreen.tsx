@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
 import { getActiveDays, getMomentum } from '@/lib/vitale-store';
+import ScreenNav from '@/components/ScreenNav';
 
 interface Props {
   onCheckIn: () => void;
   onReset: () => void;
+  onBack?: () => void;
 }
 
 const insights = [
@@ -13,7 +15,7 @@ const insights = [
   "Every day counts — even the slow ones.",
 ];
 
-export default function ProgressScreen({ onCheckIn, onReset }: Props) {
+export default function ProgressScreen({ onCheckIn, onReset, onBack }: Props) {
   const activeDays = getActiveDays();
   const momentum = getMomentum();
   const insight = insights[Math.floor(Math.random() * insights.length)];
@@ -21,6 +23,8 @@ export default function ProgressScreen({ onCheckIn, onReset }: Props) {
   return (
     <div className="min-h-screen bg-background vitale-gradient flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-[520px]">
+        <ScreenNav onBack={onBack} title="Progress" />
+
         <motion.h1
           className="font-heading text-3xl font-semibold mb-2"
           initial={{ opacity: 0, y: 20 }}

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import ScreenNav from '@/components/ScreenNav';
 import {
   UserProfile,
   calculateBMR,
@@ -14,9 +15,11 @@ import {
 interface Props {
   profile: UserProfile;
   onContinue: () => void;
+  onBack?: () => void;
+  onForward?: () => void;
 }
 
-export default function InsightScreen({ profile, onContinue }: Props) {
+export default function InsightScreen({ profile, onContinue, onBack, onForward }: Props) {
   const bmr = calculateBMR(profile);
   const tdee = calculateTDEE(bmr, profile.activityLevel);
   const target = calculateTargetCalories(tdee, profile.goal);
@@ -26,6 +29,8 @@ export default function InsightScreen({ profile, onContinue }: Props) {
   return (
     <div className="min-h-screen bg-background vitale-gradient flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-[520px]">
+        <ScreenNav onBack={onBack} onForward={onForward} title="Your Baseline" />
+
         <motion.h1
           className="font-heading text-3xl font-semibold mb-2"
           initial={{ opacity: 0, y: 20 }}
