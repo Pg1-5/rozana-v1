@@ -180,9 +180,20 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
             ))}
           </div>
 
-          <p className="text-xs text-muted-foreground font-body mb-10">
-            This keeps you close to your target (approx {target} kcal)
-          </p>
+          {/* Selected total */}
+          {Object.keys(selections).length > 0 && (
+            <div className="card-surface p-4 mb-10 flex justify-between items-center">
+              <p className="text-sm font-body text-foreground">Selected meals total</p>
+              <p className="text-sm font-body font-medium text-primary">
+                {mealSlots.reduce((sum, slot, i) => sum + (selections[i] !== undefined ? slot.options[selections[i]].kcal : 0), 0)} / {target} kcal
+              </p>
+            </div>
+          )}
+          {Object.keys(selections).length === 0 && (
+            <p className="text-xs text-muted-foreground font-body mb-10">
+              Pick your meals to see how they add up against your {target} kcal target
+            </p>
+          )}
         </motion.div>
 
         {/* Midday nudges */}
