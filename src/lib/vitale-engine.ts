@@ -9,10 +9,13 @@ export interface UserProfile {
   activityLevel: string;
 }
 
+export type DietPreference = 'vegetarian' | 'non_vegetarian' | 'eggitarian';
+
 export interface CheckInData {
   energy: 'low' | 'balanced' | 'high';
   sleep: 'poor' | 'okay' | 'rested';
   mind: 'heavy' | 'neutral' | 'clear';
+  dietPreference: DietPreference;
   kitchenInput?: string;
 }
 
@@ -137,33 +140,150 @@ export interface Recipe {
   prepTime: string;
   steps: string[];
   why: string;
+  tags: string[]; // ingredient tags for matching
 }
 
-export function getRecipeSuggestions(goal: string, kitchenInput?: string): Recipe[] {
-  const recipes: Record<string, Recipe[]> = {
-    lose_weight: [
-      { name: 'Masala Egg Bhurji', kcal: 320, prepTime: '10 min', steps: ['Heat a little oil, toss in chopped onions and tomatoes', 'Crack in 3 eggs and scramble them up', 'Add turmeric, salt, chilli — done', 'Have with 1 roti or on its own'], why: 'High protein, low carb — keeps you full without the calorie load' },
-      { name: 'Curd Rice', kcal: 280, prepTime: '5 min', steps: ['Mix leftover rice with fresh curd', 'Add salt, a little mustard seeds if you want', 'Top with pickle on the side', 'Light, cool, and gut-friendly'], why: 'Easy on digestion, light calories — perfect when you want something simple' },
-    ],
-    fat_loss: [
-      { name: 'Paneer Stir Fry', kcal: 380, prepTime: '15 min', steps: ['Cube paneer, chop capsicum and onions', 'Heat oil, toss in veggies with soy sauce', 'Add paneer cubes, stir on high heat', 'Serve hot with 1 roti'], why: 'High protein from paneer, minimal carbs — ideal for fat loss with muscle retention' },
-      { name: 'Moong Dal Cheela', kcal: 250, prepTime: '12 min', steps: ['Blend soaked moong dal into a batter', 'Pour thin on a hot pan like a dosa', 'Fill with paneer or veggies', 'Serve with green chutney'], why: 'Protein-packed, no flour — filling without the carb spike' },
-    ],
-    stay_fit: [
-      { name: 'Dal Tadka with Rice', kcal: 450, prepTime: '20 min', steps: ['Cook toor dal until soft', 'Make tadka with ghee, cumin, garlic', 'Pour over dal, serve with rice', 'Add raw onion salad on the side'], why: 'Balanced macros — protein from dal, energy from rice, good fats from ghee' },
-      { name: 'Poha with Peanuts', kcal: 350, prepTime: '10 min', steps: ['Wash and drain flattened rice', 'Fry mustard seeds, onions, green chilli', 'Toss in poha with turmeric and peanuts', 'Squeeze lime, serve with curd'], why: 'Light yet satisfying — the everyday Indian balanced meal' },
-    ],
-    build_consistency: [
-      { name: 'Banana Oat Porridge', kcal: 300, prepTime: '7 min', steps: ['Cook oats in milk until creamy', 'Slice a banana on top', 'Add honey if you like', 'Done — that easy'], why: "Simple, no-fuss, nutritious — consistency starts with things you'll actually make" },
-      { name: 'Peanut Butter Toast', kcal: 320, prepTime: '3 min', steps: ['Toast 2 slices of bread', 'Spread peanut butter generously', 'Slice banana on top', 'Have with a glass of milk'], why: 'Zero cooking required — healthy eating should be this easy' },
-    ],
-    build_muscle: [
-      { name: 'Egg Rice Bowl', kcal: 520, prepTime: '12 min', steps: ['Fry 3-4 eggs sunny side up', 'Warm up leftover rice with ghee', 'Place eggs on rice, add soy sauce', 'Top with spring onions if available'], why: 'High protein + adequate carbs — exactly what muscles need to grow' },
-      { name: 'Chicken Roti Wrap', kcal: 480, prepTime: '15 min', steps: ['Cook chicken pieces with basic masala', 'Warm up rotis on tawa', 'Wrap chicken in roti with onion + chutney', 'Quick, portable, protein-heavy'], why: 'Lean protein with complex carbs — solid muscle fuel' },
-    ],
-  };
+export interface MealSlot {
+  label: string;
+  options: [Recipe, Recipe];
+}
 
-  return recipes[goal] || recipes.stay_fit;
+const ALL_RECIPES: Record<string, Record<DietPreference, Recipe[]>> = {
+  lose_weight: {
+    vegetarian: [
+      { name: 'Curd Rice', kcal: 280, prepTime: '5 min', steps: ['Mix leftover rice with fresh curd', 'Add salt, mustard seeds if you want', 'Top with pickle on the side'], why: 'Easy on digestion, light calories', tags: ['rice', 'curd', 'pickle'] },
+      { name: 'Cucumber Raita Bowl', kcal: 180, prepTime: '5 min', steps: ['Grate cucumber into thick curd', 'Add roasted cumin, salt, mint', 'Eat as a light meal or with 1 roti'], why: 'Very low calorie, high protein from curd', tags: ['cucumber', 'curd'] },
+      { name: 'Moong Dal Cheela', kcal: 250, prepTime: '12 min', steps: ['Blend soaked moong dal into batter', 'Pour thin on hot pan like a dosa', 'Fill with paneer or veggies', 'Serve with green chutney'], why: 'Protein-packed, no flour', tags: ['moong', 'dal', 'paneer'] },
+      { name: 'Palak Paneer (light)', kcal: 300, prepTime: '15 min', steps: ['Blanch and blend spinach', 'Sauté paneer cubes lightly', 'Mix spinach puree with light spices', 'Serve with 1 roti'], why: 'Iron-rich, high protein, low carb', tags: ['paneer', 'spinach', 'palak', 'roti'] },
+    ],
+    eggitarian: [
+      { name: 'Masala Egg Bhurji', kcal: 320, prepTime: '10 min', steps: ['Heat oil, toss in onions and tomatoes', 'Crack 3 eggs and scramble', 'Add turmeric, salt, chilli', 'Have with 1 roti or on its own'], why: 'High protein, low carb', tags: ['egg', 'onion', 'tomato', 'roti'] },
+      { name: 'Boiled Egg Salad', kcal: 220, prepTime: '10 min', steps: ['Boil 3 eggs, halve them', 'Toss with cucumber, onion, tomato', 'Add lemon, salt, chaat masala', 'Light and filling'], why: 'Pure protein, almost zero carbs', tags: ['egg', 'cucumber', 'onion', 'tomato'] },
+      { name: 'Egg Dosa', kcal: 290, prepTime: '8 min', steps: ['Pour dosa batter on hot tawa', 'Crack an egg on top, spread it', 'Add salt, pepper, chopped onions', 'Fold and serve with chutney'], why: 'Balanced protein with fermented carbs', tags: ['egg', 'dosa', 'onion'] },
+      { name: 'Curd Rice', kcal: 280, prepTime: '5 min', steps: ['Mix leftover rice with fresh curd', 'Add salt, mustard seeds', 'Top with pickle on the side'], why: 'Easy on digestion, light calories', tags: ['rice', 'curd'] },
+    ],
+    non_vegetarian: [
+      { name: 'Chicken Salad Bowl', kcal: 350, prepTime: '15 min', steps: ['Grill or pan-fry chicken breast', 'Slice and toss with cucumber, onion', 'Add lemon dressing, salt, pepper', 'High protein, low carb meal'], why: 'Lean protein keeps you full for hours', tags: ['chicken', 'cucumber', 'onion'] },
+      { name: 'Masala Egg Bhurji', kcal: 320, prepTime: '10 min', steps: ['Heat oil, toss in onions and tomatoes', 'Crack 3 eggs and scramble', 'Add turmeric, salt, chilli', 'Have with 1 roti'], why: 'High protein, low carb', tags: ['egg', 'onion', 'tomato', 'roti'] },
+      { name: 'Fish Curry (light)', kcal: 300, prepTime: '20 min', steps: ['Marinate fish with turmeric, salt', 'Make light tomato-onion gravy', 'Simmer fish in the gravy', 'Serve with 1 small rice portion'], why: 'Omega-3 rich, lean protein', tags: ['fish', 'tomato', 'onion', 'rice'] },
+      { name: 'Boiled Egg Salad', kcal: 220, prepTime: '10 min', steps: ['Boil 3 eggs, halve them', 'Toss with cucumber, onion, tomato', 'Squeeze lemon, add chaat masala'], why: 'Pure protein, almost zero carbs', tags: ['egg', 'cucumber', 'onion', 'tomato'] },
+    ],
+  },
+  fat_loss: {
+    vegetarian: [
+      { name: 'Paneer Stir Fry', kcal: 380, prepTime: '15 min', steps: ['Cube paneer, chop capsicum and onions', 'Heat oil, toss veggies with soy sauce', 'Add paneer, stir on high heat', 'Serve with 1 roti'], why: 'High protein, minimal carbs — ideal for fat loss', tags: ['paneer', 'capsicum', 'onion', 'roti'] },
+      { name: 'Moong Dal Cheela', kcal: 250, prepTime: '12 min', steps: ['Blend soaked moong dal into batter', 'Pour thin on hot pan', 'Fill with paneer or veggies', 'Serve with green chutney'], why: 'Protein-packed, no flour', tags: ['moong', 'dal', 'paneer'] },
+      { name: 'Sprouts Chaat', kcal: 200, prepTime: '5 min', steps: ['Mix boiled sprouts with onion, tomato', 'Add lemon, chaat masala, coriander', 'Crunchy, fresh, and filling'], why: 'High fiber, high protein, low calorie', tags: ['sprouts', 'onion', 'tomato'] },
+      { name: 'Brown Bread Paneer Sandwich', kcal: 340, prepTime: '8 min', steps: ['Crumble paneer with green chutney', 'Add cucumber, onion slices', 'Toast brown bread, assemble', 'Quick and satisfying'], why: 'Complex carbs with protein — keeps energy stable', tags: ['brown bread', 'bread', 'paneer', 'cucumber', 'onion'] },
+    ],
+    eggitarian: [
+      { name: 'Egg White Omelette', kcal: 200, prepTime: '8 min', steps: ['Separate 4 egg whites', 'Whisk with onions, capsicum, salt', 'Cook on low flame till set', 'Serve with brown bread'], why: 'Maximum protein, minimum fat', tags: ['egg', 'onion', 'capsicum', 'brown bread', 'bread'] },
+      { name: 'Paneer Stir Fry', kcal: 380, prepTime: '15 min', steps: ['Cube paneer, chop capsicum and onions', 'Heat oil, toss veggies with soy sauce', 'Add paneer, stir on high heat', 'Serve with 1 roti'], why: 'High protein from paneer, minimal carbs', tags: ['paneer', 'capsicum', 'onion', 'roti'] },
+      { name: 'Boiled Egg & Sprouts Bowl', kcal: 280, prepTime: '10 min', steps: ['Boil eggs and sprouts', 'Toss with lemon, salt, chaat masala', 'Add chopped onion and coriander'], why: 'Double protein punch for fat burning', tags: ['egg', 'sprouts', 'onion'] },
+      { name: 'Egg Bhurji Wrap', kcal: 350, prepTime: '10 min', steps: ['Make spicy egg bhurji', 'Warm a roti, add bhurji', 'Top with onion, chutney, wrap it'], why: 'Portable protein-rich meal', tags: ['egg', 'roti', 'onion'] },
+    ],
+    non_vegetarian: [
+      { name: 'Chicken Tikka (dry)', kcal: 350, prepTime: '20 min', steps: ['Marinate chicken in curd+spices', 'Grill or pan-fry till charred', 'Serve with onion rings, lemon', 'Pure protein, zero carbs'], why: 'Lean protein — best for fat loss with muscle retention', tags: ['chicken', 'curd', 'onion'] },
+      { name: 'Fish Fry (light oil)', kcal: 300, prepTime: '15 min', steps: ['Marinate fish with turmeric, chilli, salt', 'Shallow fry in minimal oil', 'Serve with lemon and salad'], why: 'Omega-3 fatty acids + lean protein', tags: ['fish'] },
+      { name: 'Egg Bhurji Wrap', kcal: 350, prepTime: '10 min', steps: ['Make spicy egg bhurji', 'Warm a roti, add bhurji', 'Top with onion, chutney, wrap it'], why: 'Portable protein-rich meal', tags: ['egg', 'roti', 'onion'] },
+      { name: 'Chicken Salad Bowl', kcal: 320, prepTime: '15 min', steps: ['Grill chicken, slice thin', 'Toss with cucumber, onion, tomato', 'Dress with lemon and pepper'], why: 'Clean eating — high satiety, low calorie', tags: ['chicken', 'cucumber', 'onion', 'tomato'] },
+    ],
+  },
+  stay_fit: {
+    vegetarian: [
+      { name: 'Dal Tadka with Rice', kcal: 450, prepTime: '20 min', steps: ['Cook toor dal until soft', 'Make tadka with ghee, cumin, garlic', 'Serve with rice and onion salad'], why: 'Balanced macros — protein, energy, good fats', tags: ['dal', 'rice', 'ghee', 'onion'] },
+      { name: 'Poha with Peanuts', kcal: 350, prepTime: '10 min', steps: ['Wash and drain flattened rice', 'Fry mustard seeds, onions, chilli', 'Toss in poha with turmeric and peanuts', 'Squeeze lime, serve'], why: 'The everyday Indian balanced meal', tags: ['poha', 'peanuts', 'onion'] },
+      { name: 'Rajma Chawal', kcal: 480, prepTime: '25 min', steps: ['Cook rajma with onion-tomato gravy', 'Add garam masala, ginger-garlic', 'Serve hot over steamed rice'], why: 'Complete protein from beans + rice', tags: ['rajma', 'rice', 'onion', 'tomato'] },
+      { name: 'Aloo Paratha with Curd', kcal: 420, prepTime: '20 min', steps: ['Make spiced potato filling', 'Stuff in wheat dough, roll out', 'Cook on tawa with ghee', 'Serve with curd'], why: 'Comfort food with balanced energy', tags: ['potato', 'aloo', 'curd', 'ghee'] },
+    ],
+    eggitarian: [
+      { name: 'Egg Fried Rice', kcal: 420, prepTime: '12 min', steps: ['Scramble 2 eggs, keep aside', 'Fry leftover rice with veggies', 'Mix eggs back in with soy sauce', 'Quick and satisfying'], why: 'Balanced carbs and protein', tags: ['egg', 'rice'] },
+      { name: 'Dal Tadka with Rice', kcal: 450, prepTime: '20 min', steps: ['Cook toor dal until soft', 'Make tadka with ghee, cumin, garlic', 'Serve with rice'], why: 'Balanced macros from dal + rice', tags: ['dal', 'rice', 'ghee'] },
+      { name: 'Poha with Peanuts', kcal: 350, prepTime: '10 min', steps: ['Wash poha, fry with mustard seeds', 'Add onions, turmeric, peanuts', 'Squeeze lime, serve hot'], why: 'Light, balanced, everyday meal', tags: ['poha', 'peanuts', 'onion'] },
+      { name: 'Bread Omelette', kcal: 380, prepTime: '8 min', steps: ['Beat 2 eggs with onion, chilli, salt', 'Cook omelette, place on toast', 'Add ketchup or chutney'], why: 'Simple, satisfying, balanced', tags: ['egg', 'bread'] },
+    ],
+    non_vegetarian: [
+      { name: 'Chicken Curry with Rice', kcal: 520, prepTime: '25 min', steps: ['Cook chicken in onion-tomato gravy', 'Add garam masala, turmeric', 'Simmer till tender', 'Serve with steamed rice'], why: 'Complete balanced meal — protein, carbs, fats', tags: ['chicken', 'rice', 'onion', 'tomato'] },
+      { name: 'Egg Fried Rice', kcal: 420, prepTime: '12 min', steps: ['Scramble eggs, fry rice with veggies', 'Mix together with soy sauce', 'Quick and filling'], why: 'Balanced and easy to make', tags: ['egg', 'rice'] },
+      { name: 'Keema Roti', kcal: 480, prepTime: '20 min', steps: ['Cook minced meat with onion-tomato', 'Add peas, garam masala', 'Serve with 2 rotis'], why: 'Protein-heavy comfort meal', tags: ['keema', 'roti', 'onion', 'tomato'] },
+      { name: 'Fish Curry with Rice', kcal: 450, prepTime: '20 min', steps: ['Make coconut-based light curry', 'Simmer fish pieces in it', 'Serve with rice'], why: 'Omega-3 rich, light and nourishing', tags: ['fish', 'rice', 'coconut'] },
+    ],
+  },
+  build_consistency: {
+    vegetarian: [
+      { name: 'Banana Oat Porridge', kcal: 300, prepTime: '7 min', steps: ['Cook oats in milk until creamy', 'Slice banana on top', 'Add honey if you like'], why: 'Simple, no-fuss, nutritious', tags: ['oats', 'banana', 'milk'] },
+      { name: 'Peanut Butter Toast', kcal: 320, prepTime: '3 min', steps: ['Toast 2 slices of bread', 'Spread peanut butter', 'Slice banana on top', 'Have with milk'], why: 'Zero cooking, healthy eating made easy', tags: ['bread', 'peanut butter', 'banana', 'milk'] },
+      { name: 'Upma', kcal: 300, prepTime: '10 min', steps: ['Roast rava, set aside', 'Temper mustard, curry leaves, onion', 'Add water, then rava, stir till done'], why: 'Quick, filling, everyday breakfast', tags: ['rava', 'onion'] },
+      { name: 'Curd Rice', kcal: 280, prepTime: '5 min', steps: ['Mix rice with curd', 'Add salt, temper with mustard', 'Simple and comforting'], why: 'Easiest meal that actually nourishes', tags: ['rice', 'curd'] },
+    ],
+    eggitarian: [
+      { name: 'Banana Oat Porridge', kcal: 300, prepTime: '7 min', steps: ['Cook oats in milk', 'Slice banana, drizzle honey'], why: 'Simple and nutritious', tags: ['oats', 'banana', 'milk'] },
+      { name: 'Bread Omelette', kcal: 350, prepTime: '5 min', steps: ['Beat 2 eggs with salt, chilli', 'Cook omelette, place on bread', 'Add ketchup — done'], why: 'Easiest protein-rich meal', tags: ['egg', 'bread'] },
+      { name: 'Egg Maggi', kcal: 380, prepTime: '8 min', steps: ['Cook maggi as usual', 'Crack an egg in while cooking', 'Stir and serve hot'], why: 'Comfort food with added protein', tags: ['egg', 'maggi'] },
+      { name: 'Peanut Butter Toast', kcal: 320, prepTime: '3 min', steps: ['Toast bread, spread PB', 'Add banana slices'], why: 'No-cook, high energy', tags: ['bread', 'peanut butter', 'banana'] },
+    ],
+    non_vegetarian: [
+      { name: 'Chicken Maggi', kcal: 400, prepTime: '12 min', steps: ['Shred leftover chicken', 'Cook maggi, add chicken', 'Add chilli sauce'], why: 'Comfort + protein — consistency-friendly', tags: ['chicken', 'maggi'] },
+      { name: 'Bread Omelette', kcal: 350, prepTime: '5 min', steps: ['Beat eggs, cook omelette', 'Place on toast, add ketchup'], why: 'The easiest protein meal', tags: ['egg', 'bread'] },
+      { name: 'Banana Oat Porridge', kcal: 300, prepTime: '7 min', steps: ['Cook oats in milk', 'Top with banana, honey'], why: 'Simple, no-fuss nutrition', tags: ['oats', 'banana', 'milk'] },
+      { name: 'Peanut Butter Toast', kcal: 320, prepTime: '3 min', steps: ['Toast bread, spread PB', 'Slice banana, glass of milk'], why: 'Zero cooking required', tags: ['bread', 'peanut butter', 'banana'] },
+    ],
+  },
+  build_muscle: {
+    vegetarian: [
+      { name: 'Paneer Paratha', kcal: 500, prepTime: '18 min', steps: ['Crumble paneer with spices', 'Stuff into wheat dough, roll', 'Cook on tawa with ghee', 'Serve with curd'], why: 'High protein + complex carbs for muscle growth', tags: ['paneer', 'ghee', 'curd'] },
+      { name: 'Rajma Chawal', kcal: 520, prepTime: '25 min', steps: ['Cook rajma in rich gravy', 'Serve over generous rice', 'Add onion salad on side'], why: 'Complete amino acid profile from beans + rice', tags: ['rajma', 'rice', 'onion'] },
+      { name: 'Chole with Bhature', kcal: 580, prepTime: '30 min', steps: ['Cook chickpeas in spicy gravy', 'Make bhature from maida dough', 'Deep fry and serve hot'], why: 'Calorie-dense, protein-rich for bulking', tags: ['chole', 'chickpeas'] },
+      { name: 'Soya Chunk Curry with Rice', kcal: 480, prepTime: '20 min', steps: ['Soak and squeeze soya chunks', 'Cook in onion-tomato gravy', 'Serve with rice'], why: 'Soya = plant protein powerhouse', tags: ['soya', 'rice', 'onion', 'tomato'] },
+    ],
+    eggitarian: [
+      { name: 'Egg Rice Bowl', kcal: 520, prepTime: '12 min', steps: ['Fry 3-4 eggs sunny side up', 'Warm rice with ghee', 'Place eggs on rice, add soy sauce'], why: 'High protein + carbs — muscle fuel', tags: ['egg', 'rice', 'ghee'] },
+      { name: 'Paneer Paratha', kcal: 500, prepTime: '18 min', steps: ['Crumble paneer, stuff in dough', 'Cook on tawa with ghee', 'Serve with curd'], why: 'Protein-dense comfort food', tags: ['paneer', 'ghee', 'curd'] },
+      { name: 'Egg Curry with Rice', kcal: 480, prepTime: '15 min', steps: ['Boil eggs, halve them', 'Make onion-tomato gravy', 'Simmer eggs in gravy, serve with rice'], why: 'Protein-rich, calorie-adequate', tags: ['egg', 'rice', 'onion', 'tomato'] },
+      { name: 'Double Egg Omelette + Toast', kcal: 450, prepTime: '8 min', steps: ['Beat 4 eggs with veggies', 'Make thick omelette', 'Serve with buttered toast'], why: 'Quick high-protein meal', tags: ['egg', 'bread', 'butter'] },
+    ],
+    non_vegetarian: [
+      { name: 'Chicken Roti Wrap', kcal: 480, prepTime: '15 min', steps: ['Cook chicken with basic masala', 'Warm rotis', 'Wrap chicken with onion + chutney'], why: 'Lean protein with complex carbs', tags: ['chicken', 'roti', 'onion'] },
+      { name: 'Egg Rice Bowl', kcal: 520, prepTime: '12 min', steps: ['Fry 3-4 eggs sunny side up', 'Warm rice with ghee', 'Place eggs on rice, add soy sauce'], why: 'High protein + carbs for growth', tags: ['egg', 'rice', 'ghee'] },
+      { name: 'Chicken Biryani', kcal: 600, prepTime: '30 min', steps: ['Marinate chicken in yogurt+spices', 'Layer with basmati rice', 'Dum cook for 20 min'], why: 'Calorie-dense, protein-rich — ideal for muscle building', tags: ['chicken', 'rice', 'curd'] },
+      { name: 'Keema Paratha', kcal: 550, prepTime: '25 min', steps: ['Cook minced meat with spices', 'Stuff into wheat dough, roll', 'Cook with ghee on tawa'], why: 'High protein, high calorie — growth fuel', tags: ['keema', 'ghee'] },
+    ],
+  },
+};
+
+function parseIngredients(input: string): string[] {
+  return input
+    .toLowerCase()
+    .split(/[,;\n]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function scoreRecipe(recipe: Recipe, ingredients: string[]): number {
+  if (ingredients.length === 0) return 0;
+  return recipe.tags.filter((tag) =>
+    ingredients.some((ing) => ing.includes(tag) || tag.includes(ing))
+  ).length;
+}
+
+export function getRecipeSuggestions(goal: string, dietPreference: DietPreference, kitchenInput?: string): MealSlot[] {
+  const goalKey = ALL_RECIPES[goal] ? goal : 'stay_fit';
+  const pool = [...(ALL_RECIPES[goalKey][dietPreference] || ALL_RECIPES[goalKey].vegetarian)];
+  const ingredients = kitchenInput ? parseIngredients(kitchenInput) : [];
+
+  // Sort by ingredient match score (descending), then shuffle ties
+  if (ingredients.length > 0) {
+    pool.sort((a, b) => scoreRecipe(b, ingredients) - scoreRecipe(a, ingredients));
+  }
+
+  // Pick top 4 (or all if less) — split into 2 meal slots of 2 options each
+  const selected = pool.slice(0, 4);
+  const slots: MealSlot[] = [
+    { label: 'Meal 1', options: [selected[0], selected[1]] },
+    { label: 'Meal 2', options: [selected[2] || selected[0], selected[3] || selected[1]] },
+  ];
+
+  return slots;
 }
 
 export const GOAL_OPTIONS = [

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckInData, getGreeting } from '@/lib/vitale-engine';
+import { CheckInData, DietPreference, getGreeting } from '@/lib/vitale-engine';
 import ScreenNav from '@/components/ScreenNav';
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
   onBack?: () => void;
 }
 
-type PillOption<T extends string> = { value: T; label: string };
+type PillOption<T extends string> = { value: T; label: string; emoji?: string };
 
 const energyOptions: PillOption<'low' | 'balanced' | 'high'>[] = [
   { value: 'low', label: 'Low' },
@@ -29,18 +29,24 @@ const mindOptions: PillOption<'heavy' | 'neutral' | 'clear'>[] = [
   { value: 'clear', label: 'Clear' },
 ];
 
+const dietOptions: PillOption<DietPreference>[] = [
+  { value: 'vegetarian', label: 'Vegetarian', emoji: '🥦' },
+  { value: 'non_vegetarian', label: 'Non-Veg', emoji: '🍗' },
+  { value: 'eggitarian', label: 'Eggitarian', emoji: '🥚' },
+];
+
 export default function CheckInScreen({ name, onComplete, onBack }: Props) {
   const [energy, setEnergy] = useState<CheckInData['energy'] | null>(null);
   const [sleep, setSleep] = useState<CheckInData['sleep'] | null>(null);
   const [mind, setMind] = useState<CheckInData['mind'] | null>(null);
+  const [diet, setDiet] = useState<DietPreference | null>(null);
   const [kitchenInput, setKitchenInput] = useState('');
-  const [showKitchen, setShowKitchen] = useState(false);
 
-  const canProceed = energy && sleep && mind;
+  const canProceed = energy && sleep && mind && diet;
 
   return (
-    <div className="min-h-screen bg-background vitale-gradient flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-[520px]">
+    <div className="min-h-screen bg-background vitale-gradient px-6 py-12">
+      <div className="w-full max-w-[520px] mx-auto">
         <ScreenNav onBack={onBack} title="Check-in" />
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -49,34 +55,55 @@ export default function CheckInScreen({ name, onComplete, onBack }: Props) {
         </motion.div>
 
         <motion.div className="space-y-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <PillSelector label="Energy" options={energyOptions} selected={energy} onSelect={(v: 'low' | 'balanced' | 'high') => setEnergy(v)} />
-          <PillSelector label="Sleep" options={sleepOptions} selected={sleep} onSelect={(v: 'poor' | 'okay' | 'rested') => setSleep(v)} />
-          <PillSelector label="Mind" options={mindOptions} selected={mind} onSelect={(v: 'heavy' | 'neutral' | 'clear') => setMind(v)} />
+          <PillSelector label="Energy" options={energyOptions} selected={energy} onSelect={(v) => setEnergy(v)} />
+          <PillSelector label="Sleep" options={sleepOptions} selected={sleep} onSelect={(v) => setSleep(v)} />
+          <PillSelector label="Mind" options={mindOptions} selected={mind} onSelect={(v) => setMind(v)} />
         </motion.div>
 
-        {/* Kitchen input */}
-        <motion.div className="mt-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
-          <button
-            onClick={() => setShowKitchen(!showKitchen)}
-            className="text-sm text-muted-foreground font-body hover:text-foreground transition-colors"
-          >
-            {showKitchen ? '▾' : '▸'} What's available in your kitchen today?
-          </button>
-          {showKitchen && (
-            <motion.textarea
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="w-full mt-3 bg-card border border-border rounded-lg px-4 py-3 text-sm font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors resize-none"
-              placeholder="e.g. eggs, onion, tomato, rice, dal..."
-              rows={3}
-              value={kitchenInput}
-              onChange={(e) => setKitchenInput(e.target.value)}
-            />
-          )}
+        {/* Diet preference */}
+        <motion.div className="mt-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+          <p className="text-sm text-muted-foreground font-body mb-3">What do you eat?</p>
+          <div className="flex gap-3">
+            {dietOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setDiet(opt.value)}
+                className={`flex-1 py-3 rounded-lg font-body text-sm transition-all ${
+                  diet === opt.value
+                    ? 'bg-primary text-primary-foreground'
+                    : 'card-surface hover:bg-card-hover text-foreground'
+                }`}
+              >
+                {opt.emoji && <span className="mr-1">{opt.emoji}</span>}
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Kitchen input — always visible */}
+        <motion.div className="mt-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
+          <p className="text-sm text-muted-foreground font-body mb-3">What's available at home? <span className="text-xs opacity-60">(optional)</span></p>
+          <textarea
+            className="w-full bg-card border border-border rounded-lg px-4 py-3 text-sm font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors resize-none"
+            placeholder="e.g. paneer, eggs, cucumber, brown bread, rice, dal, chicken..."
+            rows={3}
+            value={kitchenInput}
+            onChange={(e) => setKitchenInput(e.target.value)}
+          />
         </motion.div>
 
         <motion.button
-          onClick={() => canProceed && onComplete({ energy: energy!, sleep: sleep!, mind: mind!, kitchenInput: kitchenInput || undefined })}
+          onClick={() =>
+            canProceed &&
+            onComplete({
+              energy: energy!,
+              sleep: sleep!,
+              mind: mind!,
+              dietPreference: diet!,
+              kitchenInput: kitchenInput || undefined,
+            })
+          }
           disabled={!canProceed}
           className="w-full py-4 rounded-lg font-body font-medium text-lg bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-opacity hover:opacity-90 mt-10"
           initial={{ opacity: 0 }}
@@ -90,7 +117,12 @@ export default function CheckInScreen({ name, onComplete, onBack }: Props) {
   );
 }
 
-function PillSelector<T extends string>({ label, options, selected, onSelect }: {
+function PillSelector<T extends string>({
+  label,
+  options,
+  selected,
+  onSelect,
+}: {
   label: string;
   options: PillOption<T>[];
   selected: T | null;

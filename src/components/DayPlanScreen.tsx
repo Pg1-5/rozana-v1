@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Check } from 'lucide-react';
 import ScreenNav from '@/components/ScreenNav';
 import {
   CheckInData,
   UserProfile,
+  MealSlot,
   getInsightLine,
   getWorkoutSuggestion,
   getRecipeSuggestions,
@@ -22,12 +25,24 @@ interface Props {
 export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onForward }: Props) {
   const insight = getInsightLine(checkIn);
   const workout = getWorkoutSuggestion(checkIn);
-  const recipes = getRecipeSuggestions(profile.goal, checkIn.kitchenInput);
+  const mealSlots = getRecipeSuggestions(profile.goal, checkIn.dietPreference, checkIn.kitchenInput);
   const bmr = calculateBMR(profile);
   const tdee = calculateTDEE(bmr, profile.activityLevel);
   const target = calculateTargetCalories(tdee, profile.goal);
 
   const isStressed = checkIn.mind === 'heavy';
+
+  // Track selected meal per slot
+  const [selections, setSelections] = useState<Record<number, number>>({});
+
+  const selectMeal = (slotIndex: number, optionIndex: number) => {
+    setSelections((prev) => ({ ...prev, [slotIndex]: optionIndex }));
+  };
+
+  const dietLabel =
+    checkIn.dietPreference === 'vegetarian' ? '🥦 Vegetarian' :
+    checkIn.dietPreference === 'non_vegetarian' ? '🍗 Non-Veg' :
+    '🥚 Eggitarian';
 
   return (
     <div className="min-h-screen bg-background vitale-gradient px-6 py-12">
@@ -71,41 +86,87 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
           </div>
         </motion.div>
 
-        {/* Eats Smart section */}
+        {/* Eat Smart section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: isStressed ? 0.7 : 0.4 }}
         >
-          <h2 className="text-xs text-muted-foreground font-body uppercase tracking-widest mb-4">Eat Smart Today</h2>
-          <div className="space-y-4 mb-4">
-            {recipes.map((recipe, i) => (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs text-muted-foreground font-body uppercase tracking-widest">Eat Smart Today</h2>
+            <span className="text-xs font-body text-muted-foreground">{dietLabel}</span>
+          </div>
+
+          {checkIn.kitchenInput && (
+            <p className="text-xs text-muted-foreground font-body mb-4 italic">
+              Based on what you have: {checkIn.kitchenInput}
+            </p>
+          )}
+
+          <div className="space-y-8 mb-4">
+            {mealSlots.map((slot, slotIdx) => (
               <motion.div
-                key={recipe.name}
-                className="p-5 rounded-lg"
-                style={{
-                  background: 'hsl(var(--card))',
-                  border: `1px solid ${i === 0 ? 'hsl(var(--primary) / 0.3)' : 'hsl(var(--secondary) / 0.3)'}`,
-                }}
+                key={slot.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: (isStressed ? 0.8 : 0.5) + i * 0.15 }}
+                transition={{ delay: (isStressed ? 0.8 : 0.5) + slotIdx * 0.2 }}
               >
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-body font-medium text-foreground">{recipe.name}</h3>
-                  <div className="flex gap-3 text-xs text-muted-foreground font-body flex-shrink-0">
-                    <span>{recipe.kcal} kcal</span>
-                    <span>{recipe.prepTime}</span>
-                  </div>
+                <p className="text-sm font-body font-medium text-foreground mb-3">{slot.label} — pick one</p>
+                <div className="space-y-3">
+                  {slot.options.map((recipe, optIdx) => {
+                    const isSelected = selections[slotIdx] === optIdx;
+                    return (
+                      <button
+                        key={recipe.name}
+                        onClick={() => selectMeal(slotIdx, optIdx)}
+                        className="w-full text-left transition-all"
+                      >
+                        <div
+                          className={`p-5 rounded-lg transition-all ${
+                            isSelected
+                              ? 'ring-2 ring-primary bg-primary/5'
+                              : 'card-surface hover:bg-card-hover'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                                  isSelected
+                                    ? 'border-primary bg-primary'
+                                    : 'border-muted-foreground/30'
+                                }`}
+                              >
+                                {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                              </div>
+                              <h3 className="font-body font-medium text-foreground">{recipe.name}</h3>
+                            </div>
+                            <div className="flex gap-3 text-xs text-muted-foreground font-body flex-shrink-0">
+                              <span>{recipe.kcal} kcal</span>
+                              <span>{recipe.prepTime}</span>
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <ol className="space-y-1.5 mb-3 ml-7">
+                                {recipe.steps.map((step, j) => (
+                                  <li key={j} className="text-sm font-body text-foreground/80 leading-relaxed">
+                                    {step}
+                                  </li>
+                                ))}
+                              </ol>
+                              <p className="text-xs text-muted-foreground font-body italic ml-7">{recipe.why}</p>
+                            </motion.div>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-                <ol className="space-y-1.5 mb-3">
-                  {recipe.steps.map((step, j) => (
-                    <li key={j} className="text-sm font-body text-foreground/80 leading-relaxed">
-                      {step}
-                    </li>
-                  ))}
-                </ol>
-                <p className="text-xs text-muted-foreground font-body italic">{recipe.why}</p>
               </motion.div>
             ))}
           </div>
