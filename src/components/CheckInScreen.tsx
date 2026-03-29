@@ -45,9 +45,9 @@ export default function CheckInScreen({ name, onComplete }: Props) {
         </motion.div>
 
         <motion.div className="space-y-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <PillSelector label="Energy" options={energyOptions} selected={energy} onSelect={setEnergy} />
-          <PillSelector label="Sleep" options={sleepOptions} selected={sleep} onSelect={setSleep} />
-          <PillSelector label="Mind" options={mindOptions} selected={mind} onSelect={setMind} />
+          <PillSelector label="Energy" options={energyOptions} selected={energy} onSelect={(v: 'low' | 'balanced' | 'high') => setEnergy(v)} />
+          <PillSelector label="Sleep" options={sleepOptions} selected={sleep} onSelect={(v: 'poor' | 'okay' | 'rested') => setSleep(v)} />
+          <PillSelector label="Mind" options={mindOptions} selected={mind} onSelect={(v: 'heavy' | 'neutral' | 'clear') => setMind(v)} />
         </motion.div>
 
         {/* Kitchen input */}
