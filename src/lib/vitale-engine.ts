@@ -15,7 +15,7 @@ export interface CheckInData {
   energy: 'low' | 'balanced' | 'high';
   sleep: 'poor' | 'okay' | 'rested';
   mind: 'heavy' | 'neutral' | 'clear';
-  dietPreference: DietPreference;
+  dietPreferences: DietPreference[];
   kitchenInput?: string;
 }
 
@@ -300,9 +300,10 @@ function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[]):
   return [first.recipe, second.recipe];
 }
 
-export function getRecipeSuggestions(goal: string, dietPreference: DietPreference, targetCalories: number, kitchenInput?: string): MealSlot[] {
+export function getRecipeSuggestions(goal: string, dietPreferences: DietPreference[], targetCalories: number, kitchenInput?: string): MealSlot[] {
   const splits = CALORIE_SPLITS[goal] || CALORIE_SPLITS.stay_fit;
   const ingredients = kitchenInput ? parseIngredients(kitchenInput) : [];
+  const prefs = dietPreferences.length > 0 ? dietPreferences : ['vegetarian' as DietPreference];
 
   const mealTypes: { type: MealType; label: string; emoji: string }[] = [
     { type: 'breakfast', label: 'Breakfast', emoji: '🌅' },
@@ -313,8 +314,19 @@ export function getRecipeSuggestions(goal: string, dietPreference: DietPreferenc
 
   return mealTypes.map((meal, i) => {
     const targetKcal = Math.round(targetCalories * splits[i]);
-    const pool = MEAL_RECIPES[meal.type][dietPreference] || MEAL_RECIPES[meal.type].vegetarian;
-    const options = pickBestTwo([...pool], targetKcal, ingredients);
+    // Merge recipe pools from all selected diet preferences, deduplicate by name
+    const seen = new Set<string>();
+    const pool: Recipe[] = [];
+    for (const pref of prefs) {
+      const recipes = MEAL_RECIPES[meal.type][pref] || [];
+      for (const r of recipes) {
+        if (!seen.has(r.name)) {
+          seen.add(r.name);
+          pool.push(r);
+        }
+      }
+    }
+    const options = pickBestTwo(pool.length >= 2 ? pool : [...MEAL_RECIPES[meal.type].vegetarian], targetKcal, ingredients);
     return {
       label: meal.label,
       emoji: meal.emoji,

@@ -28,7 +28,7 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
   const bmr = calculateBMR(profile);
   const tdee = calculateTDEE(bmr, profile.activityLevel);
   const target = calculateTargetCalories(tdee, profile.goal);
-  const mealSlots = getRecipeSuggestions(profile.goal, checkIn.dietPreference, target, checkIn.kitchenInput);
+  const mealSlots = getRecipeSuggestions(profile.goal, checkIn.dietPreferences, target, checkIn.kitchenInput);
 
   const isStressed = checkIn.mind === 'heavy';
 
@@ -39,10 +39,9 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
     setSelections((prev) => ({ ...prev, [slotIndex]: optionIndex }));
   };
 
-  const dietLabel =
-    checkIn.dietPreference === 'vegetarian' ? '🥦 Vegetarian' :
-    checkIn.dietPreference === 'non_vegetarian' ? '🍗 Non-Veg' :
-    '🥚 Eggitarian';
+  const dietLabel = checkIn.dietPreferences
+    .map((p) => p === 'vegetarian' ? '🥦 Veg' : p === 'non_vegetarian' ? '🍗 Non-Veg' : '🥚 Egg')
+    .join(' + ');
 
   return (
     <div className="min-h-screen bg-background vitale-gradient px-6 py-12">
