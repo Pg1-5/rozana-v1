@@ -300,10 +300,11 @@ function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[]):
   return [first.recipe, second.recipe];
 }
 
-export function getRecipeSuggestions(goal: string, dietPreferences: DietPreference[], targetCalories: number, kitchenInput?: string): MealSlot[] {
+export function getRecipeSuggestions(goal: string, dietPreferences: DietPreference[] | undefined, targetCalories: number, kitchenInput?: string): MealSlot[] {
   const splits = CALORIE_SPLITS[goal] || CALORIE_SPLITS.stay_fit;
   const ingredients = kitchenInput ? parseIngredients(kitchenInput) : [];
-  const prefs = dietPreferences.length > 0 ? dietPreferences : ['vegetarian' as DietPreference];
+  const safeDietPrefs = Array.isArray(dietPreferences) ? dietPreferences : [];
+  const prefs = safeDietPrefs.length > 0 ? safeDietPrefs : ['vegetarian' as DietPreference];
 
   const mealTypes: { type: MealType; label: string; emoji: string }[] = [
     { type: 'breakfast', label: 'Breakfast', emoji: '🌅' },
