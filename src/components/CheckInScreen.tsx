@@ -39,10 +39,16 @@ export default function CheckInScreen({ name, onComplete, onBack }: Props) {
   const [energy, setEnergy] = useState<CheckInData['energy'] | null>(null);
   const [sleep, setSleep] = useState<CheckInData['sleep'] | null>(null);
   const [mind, setMind] = useState<CheckInData['mind'] | null>(null);
-  const [diet, setDiet] = useState<DietPreference | null>(null);
+  const [dietSelections, setDietSelections] = useState<DietPreference[]>([]);
   const [kitchenInput, setKitchenInput] = useState('');
 
-  const canProceed = energy && sleep && mind && diet;
+  const canProceed = energy && sleep && mind && dietSelections.length > 0;
+
+  const toggleDiet = (value: DietPreference) => {
+    setDietSelections((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background vitale-gradient px-6 py-12">
@@ -64,21 +70,29 @@ export default function CheckInScreen({ name, onComplete, onBack }: Props) {
         <motion.div className="mt-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
           <p className="text-sm text-muted-foreground font-body mb-3">What do you eat?</p>
           <div className="flex gap-3">
-            {dietOptions.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setDiet(opt.value)}
-                className={`flex-1 py-3 rounded-lg font-body text-sm transition-all ${
-                  diet === opt.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'card-surface hover:bg-card-hover text-foreground'
-                }`}
-              >
-                {opt.emoji && <span className="mr-1">{opt.emoji}</span>}
-                {opt.label}
-              </button>
-            ))}
+            {dietOptions.map((opt) => {
+              const isSelected = dietSelections.includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => toggleDiet(opt.value)}
+                  className={`flex-1 py-3 rounded-lg font-body text-sm transition-all ${
+                    isSelected
+                      ? 'bg-primary text-primary-foreground'
+                      : 'card-surface hover:bg-card-hover text-foreground'
+                  }`}
+                >
+                  {opt.emoji && <span className="mr-1">{opt.emoji}</span>}
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
+          {dietSelections.length > 1 && (
+            <p className="text-xs text-muted-foreground font-body mt-2 italic">
+              Meals from {dietSelections.length} preferences will be mixed
+            </p>
+          )}
         </motion.div>
 
         {/* Kitchen input — always visible */}
@@ -100,7 +114,7 @@ export default function CheckInScreen({ name, onComplete, onBack }: Props) {
               energy: energy!,
               sleep: sleep!,
               mind: mind!,
-              dietPreference: diet!,
+              dietPreferences: dietSelections,
               kitchenInput: kitchenInput || undefined,
             })
           }
