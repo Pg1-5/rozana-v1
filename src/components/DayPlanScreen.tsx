@@ -25,10 +25,10 @@ interface Props {
 export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onForward }: Props) {
   const insight = getInsightLine(checkIn);
   const workout = getWorkoutSuggestion(checkIn);
-  const mealSlots = getRecipeSuggestions(profile.goal, checkIn.dietPreference, checkIn.kitchenInput);
   const bmr = calculateBMR(profile);
   const tdee = calculateTDEE(bmr, profile.activityLevel);
   const target = calculateTargetCalories(tdee, profile.goal);
+  const mealSlots = getRecipeSuggestions(profile.goal, checkIn.dietPreference, target, checkIn.kitchenInput);
 
   const isStressed = checkIn.mind === 'heavy';
 
