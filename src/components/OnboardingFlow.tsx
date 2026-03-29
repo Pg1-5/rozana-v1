@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft } from 'lucide-react';
 import { UserProfile, GOAL_OPTIONS, ACTIVITY_OPTIONS } from '@/lib/vitale-engine';
 
 interface Props {
@@ -18,6 +19,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
   const [profile, setProfile] = useState<Partial<UserProfile>>({});
 
   const next = () => setStep((s) => s + 1);
+  const back = () => setStep((s) => Math.max(0, s - 1));
   const update = (field: string, value: string | number) => setProfile((p) => ({ ...p, [field]: value }));
 
   const canProceed = () => {
@@ -44,16 +46,29 @@ export default function OnboardingFlow({ onComplete }: Props) {
   return (
     <div className="min-h-screen bg-background vitale-gradient flex items-center justify-center px-6">
       <div className="w-full max-w-[520px]">
-        {/* Progress bar */}
-        <div className="flex gap-1.5 mb-12">
-          {Array.from({ length: 7 }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
-                i <= step ? 'bg-primary' : 'bg-muted'
-              }`}
-            />
-          ))}
+        {/* Back + Progress bar */}
+        <div className="flex items-center gap-3 mb-12">
+          {step > 0 ? (
+            <button
+              onClick={back}
+              className="w-10 h-10 rounded-full card-surface hover:bg-card-hover flex items-center justify-center transition-colors flex-shrink-0"
+              aria-label="Go back"
+            >
+              <ChevronLeft className="w-5 h-5 text-foreground" />
+            </button>
+          ) : (
+            <div className="w-10 flex-shrink-0" />
+          )}
+          <div className="flex gap-1.5 flex-1">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div
+                key={i}
+                className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
+                  i <= step ? 'bg-primary' : 'bg-muted'
+                }`}
+              />
+            ))}
+          </div>
         </div>
 
         <AnimatePresence mode="wait">
