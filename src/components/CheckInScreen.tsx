@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckInData, getGreeting } from '@/lib/vitale-engine';
+import ScreenNav from '@/components/ScreenNav';
 
 interface Props {
   name: string;
   onComplete: (data: CheckInData) => void;
+  onBack?: () => void;
 }
 
 type PillOption<T extends string> = { value: T; label: string };
@@ -27,7 +29,7 @@ const mindOptions: PillOption<'heavy' | 'neutral' | 'clear'>[] = [
   { value: 'clear', label: 'Clear' },
 ];
 
-export default function CheckInScreen({ name, onComplete }: Props) {
+export default function CheckInScreen({ name, onComplete, onBack }: Props) {
   const [energy, setEnergy] = useState<CheckInData['energy'] | null>(null);
   const [sleep, setSleep] = useState<CheckInData['sleep'] | null>(null);
   const [mind, setMind] = useState<CheckInData['mind'] | null>(null);
@@ -39,6 +41,8 @@ export default function CheckInScreen({ name, onComplete }: Props) {
   return (
     <div className="min-h-screen bg-background vitale-gradient flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-[520px]">
+        <ScreenNav onBack={onBack} title="Check-in" />
+
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <h1 className="font-heading text-3xl font-semibold mb-2">{getGreeting(name)}</h1>
           <p className="text-muted-foreground font-body text-lg mb-10">How are you feeling today?</p>

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import ScreenNav from '@/components/ScreenNav';
 import {
   CheckInData,
   UserProfile,
@@ -14,9 +15,11 @@ interface Props {
   profile: UserProfile;
   checkIn: CheckInData;
   onReflect: () => void;
+  onBack?: () => void;
+  onForward?: () => void;
 }
 
-export default function DayPlanScreen({ profile, checkIn, onReflect }: Props) {
+export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onForward }: Props) {
   const insight = getInsightLine(checkIn);
   const workout = getWorkoutSuggestion(checkIn);
   const recipes = getRecipeSuggestions(profile.goal, checkIn.kitchenInput);
@@ -29,6 +32,8 @@ export default function DayPlanScreen({ profile, checkIn, onReflect }: Props) {
   return (
     <div className="min-h-screen bg-background vitale-gradient px-6 py-12">
       <div className="w-full max-w-[520px] mx-auto">
+        <ScreenNav onBack={onBack} onForward={onForward} title="Today's Plan" />
+
         {/* Insight line */}
         <motion.p
           className="font-heading text-2xl font-semibold mb-8"
