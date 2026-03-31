@@ -163,8 +163,7 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
                               <span className="text-xs font-body text-muted-foreground">F: <span className="text-foreground">{recipe.macros.fat}g</span></span>
                               <span className="text-xs font-body text-muted-foreground">Fiber: <span className="text-foreground">{recipe.macros.fiber}g</span></span>
                             </div>
-                          )
-                          </div>
+                          )}
                           {isSelected && (
                             <motion.div
                               initial={{ opacity: 0, height: 0 }}
