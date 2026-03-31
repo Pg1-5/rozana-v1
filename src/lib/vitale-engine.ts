@@ -302,13 +302,15 @@ function parseIngredients(input: string): string[] {
 
 function scoreRecipe(recipe: Recipe, ingredients: string[]): number {
   if (ingredients.length === 0) return 0;
-  return recipe.tags.filter((tag) =>
+  const matchCount = recipe.tags.filter((tag) =>
     ingredients.some((ing) => ing.includes(tag) || tag.includes(ing))
   ).length;
+  // Heavy bonus for recipes where most tags match user's grocery
+  const coverageBonus = matchCount >= recipe.tags.length - 1 ? 5 : 0;
+  return matchCount * 3 + coverageBonus;
 }
 
-function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[]): [Recipe, Recipe] {
-  // Score by ingredient match, then closeness to target kcal
+function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[], mealType?: string): [Recipe, Recipe] {
   const scored = pool.map((r) => ({
     recipe: r,
     ingScore: scoreRecipe(r, ingredients),
@@ -318,13 +320,12 @@ function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[]):
     if (b.ingScore !== a.ingScore) return b.ingScore - a.ingScore;
     return a.kcalDiff - b.kcalDiff;
   });
-  // Pick top 2, ensure they're different
   const first = scored[0];
   const second = scored.find((s) => s.recipe.name !== first.recipe.name) || scored[1];
-  // Adjust kcal to match slot target so any selection always totals to daily target
+  const macros = estimateMacros(targetKcal, mealType);
   return [
-    { ...first.recipe, kcal: targetKcal },
-    { ...second.recipe, kcal: targetKcal },
+    { ...first.recipe, kcal: targetKcal, macros },
+    { ...second.recipe, kcal: targetKcal, macros },
   ];
 }
 
