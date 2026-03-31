@@ -155,6 +155,16 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
                               <span>{recipe.prepTime}</span>
                             </div>
                           </div>
+                          {/* Macro breakdown */}
+                          {recipe.macros && (
+                            <div className="flex gap-3 ml-7 mt-1 mb-1">
+                              <span className="text-xs font-body text-muted-foreground">C: <span className="text-foreground">{recipe.macros.carbs}g</span></span>
+                              <span className="text-xs font-body text-muted-foreground">P: <span className="text-foreground">{recipe.macros.protein}g</span></span>
+                              <span className="text-xs font-body text-muted-foreground">F: <span className="text-foreground">{recipe.macros.fat}g</span></span>
+                              <span className="text-xs font-body text-muted-foreground">Fiber: <span className="text-foreground">{recipe.macros.fiber}g</span></span>
+                            </div>
+                          )
+                          </div>
                           {isSelected && (
                             <motion.div
                               initial={{ opacity: 0, height: 0 }}
