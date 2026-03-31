@@ -356,7 +356,7 @@ export function getRecipeSuggestions(goal: string, dietPreferences: DietPreferen
         }
       }
     }
-    const options = pickBestTwo(pool.length >= 2 ? pool : [...MEAL_RECIPES[meal.type].vegetarian], targetKcal, ingredients);
+    const options = pickBestTwo(pool.length >= 2 ? pool : [...MEAL_RECIPES[meal.type].vegetarian], targetKcal, ingredients, meal.type);
     return {
       label: meal.label,
       emoji: meal.emoji,
