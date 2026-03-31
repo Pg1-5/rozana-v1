@@ -134,6 +134,13 @@ export function getGreeting(name: string): string {
 }
 
 // Recipe data
+export interface Macros {
+  carbs: number;
+  protein: number;
+  fat: number;
+  fiber: number;
+}
+
 export interface Recipe {
   name: string;
   kcal: number;
@@ -141,6 +148,23 @@ export interface Recipe {
   steps: string[];
   why: string;
   tags: string[];
+  macros?: Macros;
+}
+
+// Estimate balanced macros from kcal based on meal type
+function estimateMacros(kcal: number, mealType?: string): Macros {
+  // Balanced Indian meal macro split: ~50% carbs, ~25% protein, ~25% fat
+  // Snacks: ~45% carbs, ~20% protein, ~35% fat
+  let carbPct = 0.50, protPct = 0.25, fatPct = 0.25;
+  if (mealType === 'snacks') { carbPct = 0.45; protPct = 0.20; fatPct = 0.35; }
+  if (mealType === 'breakfast') { carbPct = 0.55; protPct = 0.20; fatPct = 0.25; }
+
+  const carbs = Math.round((kcal * carbPct) / 4);
+  const protein = Math.round((kcal * protPct) / 4);
+  const fat = Math.round((kcal * fatPct) / 9);
+  const fiber = Math.round(kcal / 100 * 3); // ~3g per 100 kcal
+
+  return { carbs, protein, fat, fiber };
 }
 
 export interface MealSlot {
