@@ -134,6 +134,13 @@ export function getGreeting(name: string): string {
 }
 
 // Recipe data
+export interface Macros {
+  carbs: number;
+  protein: number;
+  fat: number;
+  fiber: number;
+}
+
 export interface Recipe {
   name: string;
   kcal: number;
@@ -141,6 +148,23 @@ export interface Recipe {
   steps: string[];
   why: string;
   tags: string[];
+  macros?: Macros;
+}
+
+// Estimate balanced macros from kcal based on meal type
+function estimateMacros(kcal: number, mealType?: string): Macros {
+  // Balanced Indian meal macro split: ~50% carbs, ~25% protein, ~25% fat
+  // Snacks: ~45% carbs, ~20% protein, ~35% fat
+  let carbPct = 0.50, protPct = 0.25, fatPct = 0.25;
+  if (mealType === 'snacks') { carbPct = 0.45; protPct = 0.20; fatPct = 0.35; }
+  if (mealType === 'breakfast') { carbPct = 0.55; protPct = 0.20; fatPct = 0.25; }
+
+  const carbs = Math.round((kcal * carbPct) / 4);
+  const protein = Math.round((kcal * protPct) / 4);
+  const fat = Math.round((kcal * fatPct) / 9);
+  const fiber = Math.round(kcal / 100 * 3); // ~3g per 100 kcal
+
+  return { carbs, protein, fat, fiber };
 }
 
 export interface MealSlot {
@@ -278,13 +302,15 @@ function parseIngredients(input: string): string[] {
 
 function scoreRecipe(recipe: Recipe, ingredients: string[]): number {
   if (ingredients.length === 0) return 0;
-  return recipe.tags.filter((tag) =>
+  const matchCount = recipe.tags.filter((tag) =>
     ingredients.some((ing) => ing.includes(tag) || tag.includes(ing))
   ).length;
+  // Heavy bonus for recipes where most tags match user's grocery
+  const coverageBonus = matchCount >= recipe.tags.length - 1 ? 5 : 0;
+  return matchCount * 3 + coverageBonus;
 }
 
-function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[]): [Recipe, Recipe] {
-  // Score by ingredient match, then closeness to target kcal
+function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[], mealType?: string): [Recipe, Recipe] {
   const scored = pool.map((r) => ({
     recipe: r,
     ingScore: scoreRecipe(r, ingredients),
@@ -294,13 +320,12 @@ function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[]):
     if (b.ingScore !== a.ingScore) return b.ingScore - a.ingScore;
     return a.kcalDiff - b.kcalDiff;
   });
-  // Pick top 2, ensure they're different
   const first = scored[0];
   const second = scored.find((s) => s.recipe.name !== first.recipe.name) || scored[1];
-  // Adjust kcal to match slot target so any selection always totals to daily target
+  const macros = estimateMacros(targetKcal, mealType);
   return [
-    { ...first.recipe, kcal: targetKcal },
-    { ...second.recipe, kcal: targetKcal },
+    { ...first.recipe, kcal: targetKcal, macros },
+    { ...second.recipe, kcal: targetKcal, macros },
   ];
 }
 
@@ -331,7 +356,7 @@ export function getRecipeSuggestions(goal: string, dietPreferences: DietPreferen
         }
       }
     }
-    const options = pickBestTwo(pool.length >= 2 ? pool : [...MEAL_RECIPES[meal.type].vegetarian], targetKcal, ingredients);
+    const options = pickBestTwo(pool.length >= 2 ? pool : [...MEAL_RECIPES[meal.type].vegetarian], targetKcal, ingredients, meal.type);
     return {
       label: meal.label,
       emoji: meal.emoji,
