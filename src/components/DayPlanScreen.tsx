@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import ScreenNav from '@/components/ScreenNav';
+import CalendarNudges from '@/components/CalendarNudges';
 import {
   CheckInData,
   UserProfile,
@@ -195,21 +196,10 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
           )}
         </motion.div>
 
-        {/* Midday nudges */}
-        <motion.div
-          className="space-y-3 mb-10"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
-        >
-          <h2 className="text-xs text-muted-foreground font-body uppercase tracking-widest mb-4">Later Today</h2>
-          <div className="card-surface p-4">
-            <p className="text-sm font-body text-muted-foreground">💧 Water check — you've probably not had enough today</p>
-          </div>
-          <div className="card-surface p-4">
-            <p className="text-sm font-body text-muted-foreground">🚶 A short walk might help reset your energy</p>
-          </div>
-        </motion.div>
+        {/* Smart calendar-based reminders */}
+        <div className="mb-10">
+          <CalendarNudges animationDelay={0.9} />
+        </div>
 
         <button
           onClick={onReflect}
