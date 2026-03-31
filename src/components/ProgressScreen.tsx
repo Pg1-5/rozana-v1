@@ -1,6 +1,9 @@
 import { motion } from 'framer-motion';
 import { getActiveDays, getMomentum } from '@/lib/vitale-store';
+import { getProfile } from '@/lib/vitale-store';
+import { calculateBMR, calculateTDEE, calculateTargetCalories } from '@/lib/vitale-engine';
 import ScreenNav from '@/components/ScreenNav';
+import { Footprints, Flame, TrendingDown, TrendingUp } from 'lucide-react';
 
 interface Props {
   onCheckIn: () => void;
@@ -14,6 +17,15 @@ const insights = [
   "Consistency is your superpower.",
   "Every day counts — even the slow ones.",
 ];
+
+// Demo random values (seeded by today's date so they stay consistent within a session)
+function getDemoStats() {
+  const seed = new Date().toDateString().length + new Date().getDate();
+  const steps = 5000 + Math.round(((seed * 7919) % 5001));
+  const kmWalked = Math.round((steps / 1300) * 10) / 10;
+  const caloriesBurned = Math.round(steps * 0.04);
+  return { steps, kmWalked, caloriesBurned };
+}
 
 export default function ProgressScreen({ onCheckIn, onReset, onBack }: Props) {
   const activeDays = getActiveDays();
