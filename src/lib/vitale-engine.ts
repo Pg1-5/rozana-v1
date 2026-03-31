@@ -297,7 +297,11 @@ function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[]):
   // Pick top 2, ensure they're different
   const first = scored[0];
   const second = scored.find((s) => s.recipe.name !== first.recipe.name) || scored[1];
-  return [first.recipe, second.recipe];
+  // Adjust kcal to match slot target so any selection always totals to daily target
+  return [
+    { ...first.recipe, kcal: targetKcal },
+    { ...second.recipe, kcal: targetKcal },
+  ];
 }
 
 export function getRecipeSuggestions(goal: string, dietPreferences: DietPreference[] | undefined, targetCalories: number, kitchenInput?: string): MealSlot[] {
