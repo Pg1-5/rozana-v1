@@ -160,8 +160,6 @@ export interface Recipe {
 
 // Estimate balanced macros from kcal based on meal type
 function estimateMacros(kcal: number, mealType?: string): Macros {
-  // Balanced Indian meal macro split: ~50% carbs, ~25% protein, ~25% fat
-  // Snacks: ~45% carbs, ~20% protein, ~35% fat
   let carbPct = 0.50, protPct = 0.25, fatPct = 0.25;
   if (mealType === 'snacks') { carbPct = 0.45; protPct = 0.20; fatPct = 0.35; }
   if (mealType === 'breakfast') { carbPct = 0.55; protPct = 0.20; fatPct = 0.25; }
@@ -169,12 +167,103 @@ function estimateMacros(kcal: number, mealType?: string): Macros {
   const carbs = Math.round((kcal * carbPct) / 4);
   const protein = Math.round((kcal * protPct) / 4);
   const fat = Math.round((kcal * fatPct) / 9);
-  const fiber = Math.round(kcal / 100 * 3); // ~3g per 100 kcal
+  const fiber = Math.round(kcal / 100 * 3);
 
   return { carbs, protein, fat, fiber };
 }
 
-export interface MealSlot {
+// Calorie density per 100g cooked for common Indian ingredients
+const KCAL_PER_100G: Record<string, number> = {
+  rice: 130, chawal: 130, 'steamed rice': 130, 'basmati rice': 130,
+  roti: 240, chapati: 240, paratha: 260,
+  dal: 120, 'toor dal': 120, 'moong dal': 105, 'moong': 105,
+  rajma: 125, chole: 160, chickpeas: 160,
+  paneer: 265, egg: 155,
+  chicken: 195, 'chicken breast': 165, fish: 140, keema: 210,
+  poha: 110, oats: 68, rava: 340, idli: 130, dosa: 165, bread: 265, 'brown bread': 245,
+  ghee: 900, butter: 717, oil: 884,
+  milk: 60, curd: 60, 'peanut butter': 588,
+  potato: 77, aloo: 77, spinach: 23, palak: 23, capsicum: 20, onion: 40, tomato: 18, cucumber: 15,
+  banana: 89, fruits: 50, peanuts: 567, almonds: 579, nuts: 570, sprouts: 100, makhana: 350,
+  murmura: 390, maggi: 390, 'soy sauce': 53, pickle: 150,
+  coconut: 354, 'mint chutney': 20, 'green chutney': 20,
+};
+
+// Map recipe names → their key ingredients with rough kcal share weights
+const RECIPE_PORTIONS: Record<string, { item: string; tag: string; share: number; unit?: string }[]> = {
+  'Rajma Chawal': [
+    { item: 'Rajma (cooked)', tag: 'rajma', share: 0.45, unit: 'bowl' },
+    { item: 'Chawal (cooked)', tag: 'rice', share: 0.45, unit: 'bowl' },
+    { item: 'Oil/Ghee', tag: 'ghee', share: 0.10 },
+  ],
+  'Dal Tadka with Rice': [
+    { item: 'Toor Dal (cooked)', tag: 'dal', share: 0.40, unit: 'bowl' },
+    { item: 'Rice (cooked)', tag: 'rice', share: 0.45, unit: 'bowl' },
+    { item: 'Ghee (tadka)', tag: 'ghee', share: 0.15 },
+  ],
+  'Palak Paneer with Roti': [
+    { item: 'Paneer', tag: 'paneer', share: 0.35 },
+    { item: 'Palak (cooked)', tag: 'palak', share: 0.10 },
+    { item: 'Roti', tag: 'roti', share: 0.45, unit: 'pieces' },
+    { item: 'Oil/Ghee', tag: 'ghee', share: 0.10 },
+  ],
+  'Chole with Rice': [
+    { item: 'Chole (cooked)', tag: 'chole', share: 0.45, unit: 'bowl' },
+    { item: 'Rice (cooked)', tag: 'rice', share: 0.45, unit: 'bowl' },
+    { item: 'Oil', tag: 'ghee', share: 0.10 },
+  ],
+  'Chicken Curry with Rice': [
+    { item: 'Chicken (cooked)', tag: 'chicken', share: 0.40 },
+    { item: 'Rice (cooked)', tag: 'rice', share: 0.45, unit: 'bowl' },
+    { item: 'Oil/Ghee', tag: 'ghee', share: 0.15 },
+  ],
+  'Egg Curry with Rice': [
+    { item: 'Eggs', tag: 'egg', share: 0.40, unit: 'nos' },
+    { item: 'Rice (cooked)', tag: 'rice', share: 0.45, unit: 'bowl' },
+    { item: 'Oil', tag: 'ghee', share: 0.15 },
+  ],
+  'Poha with Peanuts': [
+    { item: 'Poha (cooked)', tag: 'poha', share: 0.70, unit: 'bowl' },
+    { item: 'Peanuts', tag: 'peanuts', share: 0.20 },
+    { item: 'Oil', tag: 'ghee', share: 0.10 },
+  ],
+  'Khichdi with Ghee': [
+    { item: 'Rice+Dal (cooked)', tag: 'rice', share: 0.80, unit: 'bowl' },
+    { item: 'Ghee', tag: 'ghee', share: 0.20 },
+  ],
+  'Masala Egg Bhurji': [
+    { item: 'Eggs', tag: 'egg', share: 0.55, unit: 'nos' },
+    { item: 'Roti/Toast', tag: 'roti', share: 0.35, unit: 'pieces' },
+    { item: 'Oil', tag: 'ghee', share: 0.10 },
+  ],
+  'Banana Oat Porridge': [
+    { item: 'Oats (dry)', tag: 'oats', share: 0.50 },
+    { item: 'Banana', tag: 'banana', share: 0.30, unit: 'medium' },
+    { item: 'Milk', tag: 'milk', share: 0.20 },
+  ],
+};
+
+function estimatePortions(recipe: Recipe, targetKcal: number): Portion[] {
+  const known = RECIPE_PORTIONS[recipe.name];
+  if (known) {
+    return known.map(p => {
+      const kcalShare = targetKcal * p.share;
+      const density = KCAL_PER_100G[p.tag] || 150;
+      const grams = Math.round(kcalShare / density * 100);
+      return { item: p.item, grams, unit: p.unit };
+    });
+  }
+  // Fallback: use tags to generate rough portions
+  const tags = recipe.tags.filter(t => KCAL_PER_100G[t]);
+  if (tags.length === 0) return [];
+  const share = 1 / tags.length;
+  return tags.map(tag => {
+    const kcalShare = targetKcal * share;
+    const density = KCAL_PER_100G[tag] || 150;
+    const grams = Math.round(kcalShare / density * 100);
+    return { item: tag.charAt(0).toUpperCase() + tag.slice(1), grams };
+  });
+}
   label: string;
   emoji: string;
   targetKcal: number;
