@@ -20,21 +20,21 @@ const DEMO_NAMES = ['Priya', 'Arjun', 'Neha', 'Rohan', 'Ananya', 'Vikram', 'Sneh
 const DEMO_AVATARS = ['🧘‍♀️', '🏃‍♂️', '💃', '🚴', '🧘', '🏋️', '🤸‍♀️', '⚽', '🏊‍♀️', '🎯'];
 const DEMO_MESSAGES: Record<string, string[]> = {
   on_track: [
-    'Ate clean, moved well, feeling great today! 💪',
-    'Finished all meals within target — small wins matter!',
+    'Ate clean, moved well, feeling great today!',
+    'Finished all meals within target - small wins matter!',
     'Walked after every meal. Energy levels are amazing!',
-    'Rajma chawal for lunch, salad for dinner — balanced day ✨',
+    'Rajma chawal for lunch, salad for dinner - balanced day',
     'Hit my step goal and stuck to the meal plan!',
   ],
   almost: [
-    'Missed evening walk but ate really well today 🌱',
-    'Almost hit the target — tomorrow I'll nail it!',
+    'Missed evening walk but ate really well today',
+    'Almost hit the target - tomorrow I will nail it!',
     'Had a small extra snack but otherwise great day',
-    '3 out of 4 meals on plan — getting better each day!',
+    '3 out of 4 meals on plan - getting better each day!',
   ],
   not_today: [
-    'Rest day — listening to my body. Back at it tomorrow 🌙',
-    'Wasn't my best day, but showing up matters',
+    'Rest day - listening to my body. Back at it tomorrow',
+    'Was not my best day, but showing up matters',
     'Skipped workout, but ate mindfully. Progress not perfection.',
   ],
 };
