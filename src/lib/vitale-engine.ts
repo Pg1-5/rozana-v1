@@ -264,6 +264,7 @@ function estimatePortions(recipe: Recipe, targetKcal: number): Portion[] {
     return { item: tag.charAt(0).toUpperCase() + tag.slice(1), grams };
   });
 }
+export interface MealSlot {
   label: string;
   emoji: string;
   targetKcal: number;
