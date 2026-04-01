@@ -164,6 +164,16 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
                               <span className="text-xs font-body text-muted-foreground">Fiber: <span className="text-foreground">{recipe.macros.fiber}g</span></span>
                             </div>
                           )}
+                          {/* Portion sizes per ingredient */}
+                          {recipe.portions && recipe.portions.length > 0 && (
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 ml-7 mt-1 mb-1">
+                              {recipe.portions.map((p, pIdx) => (
+                                <span key={pIdx} className="text-xs font-body text-muted-foreground">
+                                  {p.item}: <span className="text-foreground font-medium">{p.grams}g</span>
+                                </span>
+                              ))}
+                            </div>
+                          )}
                           {isSelected && (
                             <motion.div
                               initial={{ opacity: 0, height: 0 }}
