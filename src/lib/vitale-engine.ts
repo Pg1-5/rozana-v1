@@ -420,10 +420,9 @@ function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[], 
   const first = scored[0];
   const second = scored.find((s) => s.recipe.name !== first.recipe.name) || scored[1];
   const macros = estimateMacros(targetKcal, mealType);
-  return [
-    { ...first.recipe, kcal: targetKcal, macros },
-    { ...second.recipe, kcal: targetKcal, macros },
-  ];
+  const r1 = { ...first.recipe, kcal: targetKcal, macros, portions: estimatePortions(first.recipe, targetKcal) };
+  const r2 = { ...second.recipe, kcal: targetKcal, macros, portions: estimatePortions(second.recipe, targetKcal) };
+  return [r1, r2];
 }
 
 export function getRecipeSuggestions(goal: string, dietPreferences: DietPreference[] | undefined, targetCalories: number, kitchenInput?: string): MealSlot[] {
