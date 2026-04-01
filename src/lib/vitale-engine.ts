@@ -141,6 +141,12 @@ export interface Macros {
   fiber: number;
 }
 
+export interface Portion {
+  item: string;
+  grams: number;
+  unit?: string; // e.g. "1 cup cooked" as a friendly reference
+}
+
 export interface Recipe {
   name: string;
   kcal: number;
@@ -149,6 +155,7 @@ export interface Recipe {
   why: string;
   tags: string[];
   macros?: Macros;
+  portions?: Portion[];
 }
 
 // Estimate balanced macros from kcal based on meal type
