@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import ScreenNav from '@/components/ScreenNav';
@@ -14,6 +14,7 @@ import {
   calculateTDEE,
   calculateTargetCalories,
 } from '@/lib/vitale-engine';
+import { getUsedRecipes, markRecipesUsed } from '@/lib/vitale-store';
 
 interface Props {
   profile: UserProfile;
@@ -29,7 +30,14 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
   const bmr = calculateBMR(profile);
   const tdee = calculateTDEE(bmr, profile.activityLevel);
   const target = calculateTargetCalories(tdee, profile.goal);
-  const mealSlots = getRecipeSuggestions(profile.goal, checkIn.dietPreferences, target, checkIn.kitchenInput);
+  const usedRecipes = getUsedRecipes();
+  const mealSlots = getRecipeSuggestions(profile.goal, checkIn.dietPreferences, target, checkIn.kitchenInput, usedRecipes);
+
+  // Mark today's recipes as used
+  useEffect(() => {
+    const names = mealSlots.flatMap(s => s.options.map(o => o.name));
+    markRecipesUsed(names);
+  }, []);
 
   const isStressed = checkIn.mind === 'heavy';
 

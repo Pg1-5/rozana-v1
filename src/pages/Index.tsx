@@ -5,11 +5,38 @@ import CheckInScreen from '@/components/CheckInScreen';
 import DayPlanScreen from '@/components/DayPlanScreen';
 import EveningReflection from '@/components/EveningReflection';
 import ProgressScreen from '@/components/ProgressScreen';
+import CommunityFeed from '@/components/CommunityFeed';
 import { UserProfile, CheckInData } from '@/lib/vitale-engine';
 import { saveProfile, getProfile, saveCheckIn, getTodayCheckIn, saveReflection, addMomentum, clearAll } from '@/lib/vitale-store';
+import { addCommunityPost } from '@/lib/community-store';
 
-const SCREENS = ['onboarding', 'insight', 'checkin', 'dayplan', 'reflection', 'progress'] as const;
+const SCREENS = ['onboarding', 'insight', 'checkin', 'dayplan', 'reflection', 'progress', 'community'] as const;
 type Screen = (typeof SCREENS)[number];
+
+// Demo stats for sharing
+function getDemoStats() {
+  const seed = new Date().toDateString().length + new Date().getDate();
+  const steps = 5000 + Math.round(((seed * 7919) % 5001));
+  const kmWalked = Math.round((steps / 1300) * 10) / 10;
+  const caloriesBurned = Math.round(steps * 0.04);
+  return { steps, kmWalked, caloriesBurned };
+}
+
+const SHARE_MESSAGES: Record<string, string[]> = {
+  on_track: [
+    'Ate clean, moved well - feeling great today!',
+    'Finished all meals within target. Small wins matter!',
+    'Hit my step goal and stuck to the meal plan!',
+  ],
+  almost: [
+    'Almost hit my target today - getting closer each day!',
+    'Not perfect but I showed up and that counts!',
+  ],
+  not_today: [
+    'Rest day today - listening to my body. Back at it tomorrow!',
+    'Not my best day, but progress is not perfection.',
+  ],
+};
 
 export default function Index() {
   const [screen, setScreen] = useState<Screen>('onboarding');
@@ -44,7 +71,6 @@ export default function Index() {
     }
   };
 
-  // Forward = next logical screen (for screens that have a natural "next")
   const getForwardScreen = (): Screen | null => {
     switch (screen) {
       case 'insight': return 'checkin';
@@ -73,10 +99,27 @@ export default function Index() {
     goTo('dayplan');
   };
 
-  const handleReflectionComplete = (reflection: string) => {
+  const handleReflectionComplete = (reflection: string, shared?: boolean) => {
     saveReflection(reflection);
     const type = reflection === 'on_track' ? 'full' : reflection === 'almost' ? 'partial' : 'recovery';
     addMomentum(type);
+
+    // Share to community if opted in
+    if (shared && profile) {
+      const { steps, kmWalked, caloriesBurned } = getDemoStats();
+      const msgs = SHARE_MESSAGES[reflection] || SHARE_MESSAGES.on_track;
+      addCommunityPost({
+        userName: profile.name,
+        avatar: profile.gender === 'female' ? '\uD83E\uDDD8\u200D\u2640\uFE0F' : '\uD83C\uDFC3\u200D\u2642\uFE0F',
+        reflection: reflection as 'on_track' | 'almost' | 'not_today',
+        message: msgs[Math.floor(Math.random() * msgs.length)],
+        steps,
+        kmWalked,
+        caloriesBurned,
+        isOwn: true,
+      });
+    }
+
     goTo('progress');
   };
 
@@ -103,6 +146,8 @@ export default function Index() {
     case 'reflection':
       return <EveningReflection onComplete={handleReflectionComplete} onBack={canGoBack ? goBack : undefined} />;
     case 'progress':
-      return <ProgressScreen onCheckIn={() => goTo('checkin')} onReset={handleReset} onBack={canGoBack ? goBack : undefined} />;
+      return <ProgressScreen onCheckIn={() => goTo('checkin')} onReset={handleReset} onBack={canGoBack ? goBack : undefined} onCommunity={() => goTo('community')} />;
+    case 'community':
+      return <CommunityFeed onBack={goBack} />;
   }
 }

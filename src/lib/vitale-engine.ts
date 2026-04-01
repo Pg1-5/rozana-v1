@@ -407,8 +407,13 @@ function scoreRecipe(recipe: Recipe, ingredients: string[]): number {
   return matchCount * 3 + coverageBonus;
 }
 
-function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[], mealType?: string): [Recipe, Recipe] {
-  const scored = pool.map((r) => ({
+function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[], mealType?: string, usedRecipes?: string[]): [Recipe, Recipe] {
+  // Filter out recently used recipes if possible
+  const used = new Set(usedRecipes || []);
+  const fresh = pool.filter(r => !used.has(r.name));
+  const candidates = fresh.length >= 2 ? fresh : pool;
+
+  const scored = candidates.map((r) => ({
     recipe: r,
     ingScore: scoreRecipe(r, ingredients),
     kcalDiff: Math.abs(r.kcal - targetKcal),
@@ -425,22 +430,21 @@ function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[], 
   return [r1, r2];
 }
 
-export function getRecipeSuggestions(goal: string, dietPreferences: DietPreference[] | undefined, targetCalories: number, kitchenInput?: string): MealSlot[] {
+export function getRecipeSuggestions(goal: string, dietPreferences: DietPreference[] | undefined, targetCalories: number, kitchenInput?: string, usedRecipes?: string[]): MealSlot[] {
   const splits = CALORIE_SPLITS[goal] || CALORIE_SPLITS.stay_fit;
   const ingredients = kitchenInput ? parseIngredients(kitchenInput) : [];
   const safeDietPrefs = Array.isArray(dietPreferences) ? dietPreferences : [];
   const prefs = safeDietPrefs.length > 0 ? safeDietPrefs : ['vegetarian' as DietPreference];
 
   const mealTypes: { type: MealType; label: string; emoji: string }[] = [
-    { type: 'breakfast', label: 'Breakfast', emoji: '🌅' },
-    { type: 'lunch', label: 'Lunch', emoji: '☀️' },
-    { type: 'snacks', label: 'Snacks', emoji: '🍿' },
-    { type: 'dinner', label: 'Dinner', emoji: '🌙' },
+    { type: 'breakfast', label: 'Breakfast', emoji: '\uD83C\uDF05' },
+    { type: 'lunch', label: 'Lunch', emoji: '\u2600\uFE0F' },
+    { type: 'snacks', label: 'Snacks', emoji: '\uD83C\uDF7F' },
+    { type: 'dinner', label: 'Dinner', emoji: '\uD83C\uDF19' },
   ];
 
   return mealTypes.map((meal, i) => {
     const targetKcal = Math.round(targetCalories * splits[i]);
-    // Merge recipe pools from all selected diet preferences, deduplicate by name
     const seen = new Set<string>();
     const pool: Recipe[] = [];
     for (const pref of prefs) {
@@ -452,7 +456,7 @@ export function getRecipeSuggestions(goal: string, dietPreferences: DietPreferen
         }
       }
     }
-    const options = pickBestTwo(pool.length >= 2 ? pool : [...MEAL_RECIPES[meal.type].vegetarian], targetKcal, ingredients, meal.type);
+    const options = pickBestTwo(pool.length >= 2 ? pool : [...MEAL_RECIPES[meal.type].vegetarian], targetKcal, ingredients, meal.type, usedRecipes);
     return {
       label: meal.label,
       emoji: meal.emoji,
