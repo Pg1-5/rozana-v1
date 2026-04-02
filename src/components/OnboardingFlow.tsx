@@ -220,7 +220,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
         {/* Disclaimer */}
         {step === 0 && (
           <p className="text-xs text-muted-foreground text-center mt-8 max-w-sm mx-auto">
-            Vitale supports general health and fitness guidance. For medical conditions, please consult a healthcare professional.
+            Rozana supports general health and fitness guidance. For medical conditions, please consult a healthcare professional.
           </p>
         )}
       </div>
