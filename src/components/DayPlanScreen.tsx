@@ -89,20 +89,12 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: isStressed ? 0.5 : 0.2 }}
         >
-          <h2 className="text-xs text-muted-foreground font-body uppercase tracking-widest mb-2">Move</h2>
+          <h2 className="text-xs text-muted-foreground font-body uppercase tracking-widest mb-1">Move</h2>
+          <p className="font-heading text-base font-semibold text-foreground mb-1">{workout.dayLabel}</p>
           <p className="text-sm font-body text-foreground/80 mb-4">{workout.message}</p>
 
-          {/* Walk target */}
-          <div className="card-surface p-4 mb-4 flex items-center gap-3">
-            <span className="text-lg">🚶</span>
-            <div>
-              <p className="text-sm font-body font-medium text-foreground">Daily walk: {workout.walkTarget.km} km</p>
-              <p className="text-xs font-body text-muted-foreground">{workout.walkTarget.note}</p>
-            </div>
-          </div>
-
-          <div className="space-y-3 mb-8">
-            {workout.options.filter(o => o.category !== 'walk').map((opt, idx) => {
+          <div className="space-y-3 mb-4">
+            {workout.options.map((opt, idx) => {
               const isSelected = selectedWorkout === idx;
               return (
                 <button
@@ -153,6 +145,15 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
                 </button>
               );
             })}
+          </div>
+
+          {/* Walk target */}
+          <div className="card-surface p-4 mb-8 flex items-center gap-3">
+            <span className="text-lg">🚶</span>
+            <div>
+              <p className="text-sm font-body font-medium text-foreground">Daily walk: {workout.walkTarget.km} km</p>
+              <p className="text-xs font-body text-muted-foreground">{workout.walkTarget.note}</p>
+            </div>
           </div>
         </motion.div>
 
