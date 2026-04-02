@@ -27,7 +27,7 @@ interface Props {
 
 export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onForward }: Props) {
   const insight = getInsightLine(checkIn);
-  const workout = getWorkoutSuggestion(checkIn);
+  const workout = getWorkoutSuggestion(checkIn, profile.goal);
   const bmr = calculateBMR(profile);
   const tdee = calculateTDEE(bmr, profile.activityLevel);
   const target = calculateTargetCalories(tdee, profile.goal);
