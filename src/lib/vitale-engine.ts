@@ -99,24 +99,196 @@ export function getGoalTip(goal: string): string {
   }
 }
 
+// Workout types
+export interface WorkoutOption {
+  category: 'upper_body' | 'lower_body' | 'cardio' | 'walk' | 'rest';
+  emoji: string;
+  title: string;
+  description: string;
+  duration: string;
+  exercises?: string[];
+}
+
+export interface WorkoutPlan {
+  message: string;
+  options: WorkoutOption[];
+  walkTarget: { km: number; note: string };
+}
+
+// Exercise pools by category & intensity
+const UPPER_BODY: Record<string, WorkoutOption> = {
+  low: {
+    category: 'upper_body', emoji: '💪', title: 'Light Upper Body',
+    description: 'Gentle movements to keep your upper body engaged.',
+    duration: '15 min',
+    exercises: ['Wall push-ups × 12', 'Arm circles × 30s each direction', 'Resistance band pull-aparts × 15', 'Seated shoulder press (light) × 10'],
+  },
+  moderate: {
+    category: 'upper_body', emoji: '💪', title: 'Upper Body Strength',
+    description: 'Build strength in your arms, shoulders and back.',
+    duration: '25 min',
+    exercises: ['Push-ups × 15', 'Dumbbell rows × 12 each', 'Overhead press × 12', 'Plank hold × 45s', 'Tricep dips × 12'],
+  },
+  high: {
+    category: 'upper_body', emoji: '💪', title: 'Upper Body Power',
+    description: 'Push your upper body to build lean muscle.',
+    duration: '35 min',
+    exercises: ['Diamond push-ups × 15', 'Dumbbell bench press × 12', 'Bent-over rows × 15', 'Shoulder press × 12', 'Plank to push-up × 10', 'Bicep curls × 15'],
+  },
+};
+
+const LOWER_BODY: Record<string, WorkoutOption> = {
+  low: {
+    category: 'lower_body', emoji: '🦵', title: 'Light Lower Body',
+    description: 'Easy leg movements to stay mobile.',
+    duration: '15 min',
+    exercises: ['Bodyweight squats × 12', 'Calf raises × 15', 'Glute bridges × 12', 'Standing leg lifts × 10 each'],
+  },
+  moderate: {
+    category: 'lower_body', emoji: '🦵', title: 'Lower Body Strength',
+    description: 'Strengthen legs and glutes for everyday power.',
+    duration: '25 min',
+    exercises: ['Squats × 15', 'Lunges × 12 each leg', 'Romanian deadlift × 12', 'Wall sit × 45s', 'Step-ups × 12 each'],
+  },
+  high: {
+    category: 'lower_body', emoji: '🦵', title: 'Lower Body Power',
+    description: 'Intense leg session for serious results.',
+    duration: '35 min',
+    exercises: ['Jump squats × 15', 'Bulgarian split squats × 12 each', 'Sumo deadlift × 15', 'Pistol squat progression × 8 each', 'Box jumps × 12', 'Hip thrusts × 15'],
+  },
+};
+
+const CARDIO: Record<string, WorkoutOption> = {
+  low: {
+    category: 'cardio', emoji: '❤️‍🔥', title: 'Light Cardio',
+    description: 'Get your heart rate up gently.',
+    duration: '15 min',
+    exercises: ['Marching in place × 2 min', 'Step touch side-to-side × 2 min', 'Gentle jumping jacks × 1 min', 'Repeat 3 rounds'],
+  },
+  moderate: {
+    category: 'cardio', emoji: '❤️‍🔥', title: 'Cardio Burn',
+    description: 'Steady-state cardio to burn calories effectively.',
+    duration: '25 min',
+    exercises: ['Jumping jacks × 1 min', 'High knees × 45s', 'Mountain climbers × 45s', 'Burpees × 30s', 'Rest 30s — repeat 4 rounds'],
+  },
+  high: {
+    category: 'cardio', emoji: '❤️‍🔥', title: 'HIIT Cardio Blast',
+    description: 'High-intensity intervals for maximum fat burn.',
+    duration: '30 min',
+    exercises: ['Burpees × 45s', 'Squat jumps × 45s', 'Mountain climbers × 45s', 'High knees × 45s', 'Rest 30s — repeat 5 rounds'],
+  },
+};
+
+function getIntensityLevel(checkIn: CheckInData): string {
+  if (checkIn.mind === 'heavy' || (checkIn.sleep === 'poor' && checkIn.energy === 'low')) return 'low';
+  if (checkIn.energy === 'high' && checkIn.sleep === 'rested') return 'high';
+  return 'moderate';
+}
+
+function getWalkTarget(goal: string, intensity: string): { km: number; note: string } {
+  const base = goal === 'lose_weight' || goal === 'fat_loss' ? 5 : goal === 'build_muscle' ? 3 : 4;
+  const multiplier = intensity === 'low' ? 0.6 : intensity === 'high' ? 1.2 : 1;
+  const km = Math.round(base * multiplier * 10) / 10;
+  const notes: Record<string, string> = {
+    lose_weight: `Walking ${km} km daily creates a steady calorie deficit without stressing your body.`,
+    fat_loss: `A ${km} km walk keeps your fat-burning zone active while preserving muscle.`,
+    build_muscle: `${km} km walk aids recovery and keeps your metabolism active on rest days.`,
+    stay_fit: `${km} km daily walk maintains cardiovascular health and keeps you energised.`,
+    build_consistency: `Start with ${km} km — consistency beats intensity every time.`,
+  };
+  return { km, note: notes[goal] || `Walk ${km} km at a comfortable pace today.` };
+}
+
+function getDayOfWeek(): number {
+  return new Date().getDay(); // 0=Sun, 1=Mon...
+}
+
+function getWorkoutRotation(goal: string, day: number): ('upper_body' | 'lower_body' | 'cardio')[] {
+  // Systematic rotation based on goal
+  if (goal === 'lose_weight' || goal === 'fat_loss') {
+    // More cardio, balanced strength
+    const patterns: ('upper_body' | 'lower_body' | 'cardio')[][] = [
+      ['cardio', 'upper_body'], // Sun
+      ['lower_body', 'cardio'], // Mon
+      ['upper_body', 'cardio'], // Tue
+      ['cardio', 'lower_body'], // Wed
+      ['upper_body', 'cardio'], // Thu
+      ['lower_body', 'cardio'], // Fri
+      ['cardio'],               // Sat - active recovery
+    ];
+    return patterns[day];
+  }
+  if (goal === 'build_muscle') {
+    // More strength, less cardio
+    const patterns: ('upper_body' | 'lower_body' | 'cardio')[][] = [
+      ['upper_body', 'lower_body'], // Sun
+      ['lower_body', 'upper_body'], // Mon
+      ['upper_body', 'cardio'],     // Tue
+      ['lower_body', 'upper_body'], // Wed
+      ['upper_body', 'lower_body'], // Thu
+      ['cardio', 'lower_body'],     // Fri
+      ['upper_body'],               // Sat
+    ];
+    return patterns[day];
+  }
+  // stay_fit / build_consistency — balanced
+  const patterns: ('upper_body' | 'lower_body' | 'cardio')[][] = [
+    ['cardio', 'upper_body'],     // Sun
+    ['lower_body', 'cardio'],     // Mon
+    ['upper_body', 'lower_body'], // Tue
+    ['cardio'],                   // Wed
+    ['lower_body', 'upper_body'], // Thu
+    ['cardio', 'lower_body'],     // Fri
+    ['upper_body'],               // Sat
+  ];
+  return patterns[day];
+}
+
+const POOLS: Record<string, Record<string, WorkoutOption>> = {
+  upper_body: UPPER_BODY,
+  lower_body: LOWER_BODY,
+  cardio: CARDIO,
+};
+
 // Check-in adaptive logic
-export function getWorkoutSuggestion(checkIn: CheckInData): { title: string; description: string } {
+export function getWorkoutSuggestion(checkIn: CheckInData, goal: string = 'stay_fit'): WorkoutPlan {
+  const intensity = getIntensityLevel(checkIn);
+  const walkTarget = getWalkTarget(goal, intensity);
+
   if (checkIn.mind === 'heavy') {
-    return { title: 'A short 10 min walk outside', description: "That's your move today." };
+    return {
+      message: "Let's keep it gentle today. A walk is your workout.",
+      options: [{
+        category: 'walk', emoji: '🚶', title: 'Mindful Walk',
+        description: 'Step outside, breathe deep. That\'s your move today.',
+        duration: `${walkTarget.km} km`,
+      }],
+      walkTarget,
+    };
   }
-  if (checkIn.sleep === 'poor' && checkIn.energy === 'low') {
-    return { title: '3 km walk + 10 min light stretch', description: "That's enough today." };
-  }
-  if (checkIn.sleep === 'poor' && checkIn.energy === 'balanced') {
-    return { title: '20 min walk or light home flow', description: 'Keep it gentle today.' };
-  }
-  if (checkIn.energy === 'balanced') {
-    return { title: '20 min home flow or a brisk walk', description: "A calm, consistent day is a good day." };
-  }
-  if (checkIn.sleep === 'rested' && checkIn.energy === 'high') {
-    return { title: 'Full body session (30 min)', description: "You're ready for this." };
-  }
-  return { title: '20-30 min walk or home workout', description: 'Move at your own pace.' };
+
+  const day = getDayOfWeek();
+  const rotation = getWorkoutRotation(goal, day);
+  const options: WorkoutOption[] = rotation.map(cat => POOLS[cat][intensity]);
+
+  // Always include walk as an option
+  options.push({
+    category: 'walk', emoji: '🚶', title: `Walk — ${walkTarget.km} km`,
+    description: walkTarget.note,
+    duration: `~${Math.round(walkTarget.km * 12)} min`,
+  });
+
+  const messages: Record<string, string> = {
+    low: 'Take it easy today — pick what feels right.',
+    moderate: "You've got good energy. Choose your workout.",
+    high: "You're fired up — make the most of today!",
+  };
+
+  return {
+    message: messages[intensity],
+    options,
+    walkTarget,
+  };
 }
 
 export function getInsightLine(checkIn: CheckInData): string {

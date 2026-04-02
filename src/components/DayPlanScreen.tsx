@@ -7,6 +7,7 @@ import {
   CheckInData,
   UserProfile,
   MealSlot,
+  WorkoutOption,
   getInsightLine,
   getWorkoutSuggestion,
   getRecipeSuggestions,
