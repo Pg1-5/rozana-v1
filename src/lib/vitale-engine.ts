@@ -284,10 +284,15 @@ function getSplitDayIndex(): number {
 export function getWorkoutSuggestion(checkIn: CheckInData, goal: string = 'stay_fit'): WorkoutPlan {
   const intensity = getIntensityLevel(checkIn);
   const walkTarget = getWalkTarget(goal, intensity);
+  const splitIdx = getSplitDayIndex();
+  const todaySplit = WEEKLY_SPLIT[splitIdx];
+  const dayNum = splitIdx + 1;
+  const dayLabel = todaySplit.category === 'rest' ? 'Day 6 — Rest Day' : `Day ${dayNum} — ${todaySplit.title}`;
 
   if (checkIn.mind === 'heavy') {
     return {
       message: "Let's keep it gentle today. A walk is your workout.",
+      dayLabel,
       options: [{
         category: 'walk', emoji: '🚶', title: 'Mindful Walk',
         description: 'Step outside, breathe deep. That\'s your move today.',
@@ -297,25 +302,37 @@ export function getWorkoutSuggestion(checkIn: CheckInData, goal: string = 'stay_
     };
   }
 
-  const day = getDayOfWeek();
-  const rotation = getWorkoutRotation(goal, day);
-  const options: WorkoutOption[] = rotation.map(cat => buildWorkoutOption(cat, intensity, day));
+  const exercises = intensity === 'low' ? todaySplit.lowExercises : todaySplit.exercises;
 
-  // Always include walk as an option
-  options.push({
-    category: 'walk', emoji: '🚶', title: `Walk — ${walkTarget.km} km`,
-    description: walkTarget.note,
-    duration: `~${Math.round(walkTarget.km * 12)} min`,
-  });
+  const mainWorkout: WorkoutOption = {
+    category: todaySplit.category,
+    emoji: todaySplit.emoji,
+    title: todaySplit.title,
+    description: todaySplit.description,
+    duration: todaySplit.duration,
+    exercises,
+  };
+
+  const options: WorkoutOption[] = [mainWorkout];
+
+  // Add walk alongside (not on rest day)
+  if (todaySplit.category !== 'rest') {
+    options.push({
+      category: 'walk', emoji: '🚶', title: `Daily Walk — ${walkTarget.km} km`,
+      description: walkTarget.note,
+      duration: `~${Math.round(walkTarget.km * 12)} min`,
+    });
+  }
 
   const messages: Record<string, string> = {
-    low: 'Take it easy today — pick what feels right.',
-    moderate: "You've got good energy. Choose your workout.",
-    high: "You're fired up — make the most of today!",
+    low: 'Take it easy today — lighter version of your workout.',
+    moderate: "You've got good energy. Let's hit today's workout.",
+    high: "You're fired up — give it your all today!",
   };
 
   return {
-    message: messages[intensity],
+    message: todaySplit.category === 'rest' ? 'Today is your rest day. Recovery is part of the process.' : (messages[intensity] || messages.moderate),
+    dayLabel,
     options,
     walkTarget,
   };
