@@ -100,8 +100,10 @@ export function getGoalTip(goal: string): string {
 }
 
 // Workout types
+export type WorkoutCategory = 'chest_triceps' | 'back_biceps' | 'legs' | 'abs_mobility' | 'shoulders' | 'rest' | 'walk';
+
 export interface WorkoutOption {
-  category: 'upper_body' | 'lower_body' | 'cardio' | 'walk' | 'rest';
+  category: WorkoutCategory;
   emoji: string;
   title: string;
   description: string;
@@ -111,73 +113,144 @@ export interface WorkoutOption {
 
 export interface WorkoutPlan {
   message: string;
+  dayLabel: string;
   options: WorkoutOption[];
   walkTarget: { km: number; note: string };
 }
 
-// Exercise pools — unique exercises per day, with reps × sets
-// Each day (0=Sun..6=Sat) has different exercises so nothing repeats in a week
+// ─── 6-DAY GYM SPLIT (Day 7 = Rest) ───
 
-const UPPER_BODY_DAILY: Record<number, string[]> = {
-  0: ['Push-ups — 3 sets × 15 reps', 'Dumbbell shoulder press — 3 sets × 12 reps', 'Tricep dips — 3 sets × 12 reps', 'Plank hold — 3 sets × 45s'],
-  1: ['Incline push-ups — 3 sets × 15 reps', 'Lateral raises — 3 sets × 12 reps', 'Bicep curls — 3 sets × 15 reps', 'Dead hangs — 3 sets × 30s'],
-  2: ['Diamond push-ups — 3 sets × 12 reps', 'Dumbbell rows — 3 sets × 12 reps each', 'Overhead tricep extension — 3 sets × 12 reps', 'Plank to push-up — 3 sets × 10 reps'],
-  3: ['Wide push-ups — 3 sets × 15 reps', 'Arnold press — 3 sets × 10 reps', 'Hammer curls — 3 sets × 12 reps', 'Superman hold — 3 sets × 30s'],
-  4: ['Pike push-ups — 3 sets × 10 reps', 'Bent-over rows — 3 sets × 15 reps', 'Skull crushers — 3 sets × 12 reps', 'Side plank — 3 sets × 30s each'],
-  5: ['Dumbbell bench press — 3 sets × 12 reps', 'Face pulls (band) — 3 sets × 15 reps', 'Concentration curls — 3 sets × 10 reps each', 'Hollow body hold — 3 sets × 30s'],
-  6: ['Decline push-ups — 3 sets × 12 reps', 'Rear delt flyes — 3 sets × 15 reps', 'Close-grip push-ups — 3 sets × 12 reps', 'Farmer carry — 3 sets × 40s'],
-};
+interface DaySplit {
+  category: WorkoutCategory;
+  emoji: string;
+  title: string;
+  description: string;
+  duration: string;
+  exercises: string[];
+  lowExercises: string[]; // gentler version for low-energy days
+}
 
-const LOWER_BODY_DAILY: Record<number, string[]> = {
-  0: ['Squats — 3 sets × 15 reps', 'Glute bridges — 3 sets × 15 reps', 'Calf raises — 3 sets × 20 reps', 'Wall sit — 3 sets × 45s'],
-  1: ['Lunges — 3 sets × 12 reps each leg', 'Romanian deadlift — 3 sets × 12 reps', 'Step-ups — 3 sets × 12 reps each', 'Single-leg calf raise — 3 sets × 15 each'],
-  2: ['Sumo squats — 3 sets × 15 reps', 'Hip thrusts — 3 sets × 15 reps', 'Side lunges — 3 sets × 12 each', 'Seated calf raise — 3 sets × 20 reps'],
-  3: ['Bulgarian split squats — 3 sets × 10 reps each', 'Good mornings — 3 sets × 12 reps', 'Donkey kicks — 3 sets × 15 each', 'Goblet squat — 3 sets × 12 reps'],
-  4: ['Jump squats — 3 sets × 12 reps', 'Single-leg deadlift — 3 sets × 10 each', 'Curtsy lunges — 3 sets × 12 each', 'Isometric squat hold — 3 sets × 40s'],
-  5: ['Pistol squat progression — 3 sets × 8 each', 'Sumo deadlift — 3 sets × 12 reps', 'Fire hydrants — 3 sets × 15 each', 'Box jumps — 3 sets × 10 reps'],
-  6: ['Reverse lunges — 3 sets × 12 each', 'Frog pumps — 3 sets × 20 reps', 'Standing calf raise — 3 sets × 20 reps', 'Squat pulse — 3 sets × 15 reps'],
-};
-
-const CARDIO_DAILY: Record<number, string[]> = {
-  0: ['Jumping jacks — 3 sets × 1 min', 'High knees — 3 sets × 45s', 'Mountain climbers — 3 sets × 45s', 'Rest 30s between sets'],
-  1: ['Burpees — 3 sets × 10 reps', 'Squat jumps — 3 sets × 12 reps', 'Skaters — 3 sets × 1 min', 'Rest 30s between sets'],
-  2: ['Star jumps — 3 sets × 15 reps', 'Tuck jumps — 3 sets × 10 reps', 'Sprint in place — 3 sets × 45s', 'Rest 30s between sets'],
-  3: ['Lateral shuffles — 3 sets × 1 min', 'Plank jacks — 3 sets × 15 reps', 'Speed skips — 3 sets × 1 min', 'Rest 30s between sets'],
-  4: ['Box step-ups (fast) — 3 sets × 1 min', 'Bicycle crunches — 3 sets × 20 reps', 'Butt kicks — 3 sets × 45s', 'Rest 30s between sets'],
-  5: ['Broad jumps — 3 sets × 8 reps', 'Cross-body mountain climbers — 3 sets × 45s', 'Power skips — 3 sets × 1 min', 'Rest 30s between sets'],
-  6: ['Shadow boxing — 3 sets × 1 min', 'Lunge jumps — 3 sets × 10 each', 'Bear crawl — 3 sets × 30s', 'Rest 30s between sets'],
-};
-
-// Low intensity versions (shorter, fewer sets)
-const UPPER_LOW_DAILY: Record<number, string[]> = {
-  0: ['Wall push-ups — 2 sets × 12 reps', 'Arm circles — 2 sets × 30s each direction', 'Light band pull-aparts — 2 sets × 12 reps'],
-  1: ['Incline push-ups (table) — 2 sets × 10 reps', 'Shoulder shrugs — 2 sets × 15 reps', 'Wrist circles — 2 sets × 30s'],
-  2: ['Seated press (light) — 2 sets × 10 reps', 'Light bicep curls — 2 sets × 12 reps', 'Cat-cow stretch — 2 sets × 10 reps'],
-  3: ['Wall push-ups — 2 sets × 15 reps', 'Band rows — 2 sets × 12 reps', 'Neck stretches — hold 30s each side'],
-  4: ['Light lateral raises — 2 sets × 10 reps', 'Doorframe stretch — hold 30s each side', 'Gentle plank — 2 sets × 20s'],
-  5: ['Arm swings — 2 sets × 1 min', 'Light overhead press — 2 sets × 10 reps', 'Chest opener stretch — hold 30s'],
-  6: ['Slow push-ups — 2 sets × 8 reps', 'Light rows — 2 sets × 10 reps', 'Shoulder rolls — 2 sets × 30s'],
-};
-
-const LOWER_LOW_DAILY: Record<number, string[]> = {
-  0: ['Bodyweight squats — 2 sets × 12 reps', 'Calf raises — 2 sets × 15 reps', 'Glute bridges — 2 sets × 12 reps'],
-  1: ['Standing leg lifts — 2 sets × 10 each', 'Gentle lunges — 2 sets × 8 each', 'Ankle circles — 2 sets × 15 each'],
-  2: ['Chair squats — 2 sets × 10 reps', 'Side-lying leg lifts — 2 sets × 12 each', 'Seated calf raise — 2 sets × 15 reps'],
-  3: ['Wall sit — 2 sets × 30s', 'Hip circles — 2 sets × 10 each direction', 'Gentle step-ups — 2 sets × 10 each'],
-  4: ['Sumo squats (slow) — 2 sets × 10 reps', 'Donkey kicks — 2 sets × 12 each', 'Toe touches — 2 sets × 15 reps'],
-  5: ['Reverse lunges — 2 sets × 8 each', 'Glute bridge hold — 2 sets × 30s', 'Calf stretch — hold 30s each'],
-  6: ['Bodyweight squats — 2 sets × 10 reps', 'Standing hamstring curl — 2 sets × 12 each', 'Hip flexor stretch — hold 30s each'],
-};
-
-const CARDIO_LOW_DAILY: Record<number, string[]> = {
-  0: ['Marching in place — 2 sets × 2 min', 'Step touch — 2 sets × 2 min', 'Gentle arm swings — 2 sets × 1 min'],
-  1: ['Slow jumping jacks — 2 sets × 1 min', 'Side steps — 2 sets × 2 min', 'Seated marching — 2 sets × 2 min'],
-  2: ['Walking in place — 2 sets × 3 min', 'Gentle high knees — 2 sets × 1 min', 'Torso twists — 2 sets × 1 min'],
-  3: ['Step side-to-side — 2 sets × 2 min', 'Light skipping — 2 sets × 1 min', 'Deep breathing walk — 3 min'],
-  4: ['Slow marching — 2 sets × 3 min', 'Arm circles + walk — 2 min', 'Gentle step-ups — 2 sets × 1 min'],
-  5: ['Dancing in place — 2 sets × 2 min', 'Easy speed walk — 3 min', 'Cool-down stretches — 2 min'],
-  6: ['Leisurely walk in place — 5 min', 'Gentle toe taps — 2 sets × 1 min', 'Deep breathing — 2 min'],
-};
+const WEEKLY_SPLIT: DaySplit[] = [
+  // Day 1 — Chest & Triceps
+  {
+    category: 'chest_triceps', emoji: '🏋️', title: 'Chest & Triceps',
+    description: 'Build a strong chest and defined triceps.',
+    duration: '45 min',
+    exercises: [
+      'Incline bench press — 4 × 12',
+      'Seated chest press machine — 4 × 12',
+      'Cable crossover — 3 × 15',
+      'Triceps push-down — 4 × 15',
+      'Dumbbell overhead extension — 4 × 15',
+      'Triceps dips — 3 × to failure',
+    ],
+    lowExercises: [
+      'Incline push-ups — 3 × 12',
+      'Chest press (light) — 3 × 12',
+      'Light cable crossover — 2 × 12',
+      'Triceps push-down (light) — 3 × 12',
+      'Overhead extension (light) — 3 × 10',
+    ],
+  },
+  // Day 2 — Back & Biceps
+  {
+    category: 'back_biceps', emoji: '🏋️', title: 'Back & Biceps',
+    description: 'Strengthen your back and build bicep definition.',
+    duration: '45 min',
+    exercises: [
+      'Seated row — 4 × 12',
+      'Lat pulldown — 3 × 15',
+      'One-arm dumbbell row — 3 × 12 each',
+      'Hyperextension — 2 × 15',
+      'Standing barbell curl — 4 × 12',
+      'Cable rope hammer curl — 4 × 15',
+    ],
+    lowExercises: [
+      'Seated row (light) — 3 × 10',
+      'Lat pulldown (light) — 3 × 12',
+      'One-arm dumbbell row (light) — 2 × 10 each',
+      'Light bicep curls — 3 × 12',
+      'Hammer curls (light) — 3 × 10',
+    ],
+  },
+  // Day 3 — Legs
+  {
+    category: 'legs', emoji: '🦵', title: 'Legs',
+    description: 'Build powerful legs — the foundation of your strength.',
+    duration: '45 min',
+    exercises: [
+      'Leg extension — 4 × 15',
+      'Leg press — 3 × 15',
+      'Smith machine squats — 3 × 12',
+      'Lying leg curls — 3 × 12-15',
+      'Calf raises — 4 × 15',
+    ],
+    lowExercises: [
+      'Bodyweight squats — 3 × 12',
+      'Leg extension (light) — 3 × 12',
+      'Glute bridges — 3 × 15',
+      'Calf raises — 3 × 15',
+      'Wall sit — 3 × 30s',
+    ],
+  },
+  // Day 4 — Abs, Mobility & Cardio
+  {
+    category: 'abs_mobility', emoji: '🧘', title: 'Abs, Mobility & Cardio',
+    description: '40 min cardio + core work + full-body stretching.',
+    duration: '60 min',
+    exercises: [
+      '40 min cardio (treadmill / cycling / elliptical)',
+      'Sit-up crunches — 3 sets to failure',
+      'Lying leg raises — 3 × 15',
+      'Plank hold — 3 × 45s',
+      'Russian twists — 3 × 20',
+      'Whole body stretching — 10 min',
+    ],
+    lowExercises: [
+      '20 min light walk / cycling',
+      'Gentle crunches — 2 × 12',
+      'Lying leg raises — 2 × 10',
+      'Plank hold — 2 × 20s',
+      'Full body stretching — 15 min',
+    ],
+  },
+  // Day 5 — Shoulders
+  {
+    category: 'shoulders', emoji: '💪', title: 'Shoulders',
+    description: 'Build strong, well-rounded shoulders.',
+    duration: '40 min',
+    exercises: [
+      'Machine overhead press — 3 × 15',
+      'Lateral raise — 3 × 15',
+      'Cable rope front raises — 3 × 15',
+      'Cable Z-bar upright rows — 3 × 12',
+      'Dumbbell shrugs — 4 × 12',
+    ],
+    lowExercises: [
+      'Light overhead press — 2 × 12',
+      'Lateral raise (light) — 2 × 12',
+      'Front raises (light) — 2 × 12',
+      'Shoulder shrugs (light) — 3 × 12',
+    ],
+  },
+  // Day 6 — Rest
+  {
+    category: 'rest', emoji: '😌', title: 'Rest Day',
+    description: 'Recovery is when your body grows stronger. Stretch, hydrate, and rest well.',
+    duration: '—',
+    exercises: [
+      'Light stretching — 10-15 min',
+      'Foam rolling (if available)',
+      'Hydrate well — aim for 3L+ water',
+      'Prioritise 7-8 hours of sleep tonight',
+    ],
+    lowExercises: [
+      'Gentle stretching — 10 min',
+      'Deep breathing exercises — 5 min',
+      'Rest and recover',
+    ],
+  },
+];
 
 function getIntensityLevel(checkIn: CheckInData): string {
   if (checkIn.mind === 'heavy' || (checkIn.sleep === 'poor' && checkIn.energy === 'low')) return 'low';
@@ -192,106 +265,34 @@ function getWalkTarget(goal: string, intensity: string): { km: number; note: str
   const notes: Record<string, string> = {
     lose_weight: `Walking ${km} km daily creates a steady calorie deficit without stressing your body.`,
     fat_loss: `A ${km} km walk keeps your fat-burning zone active while preserving muscle.`,
-    build_muscle: `${km} km walk aids recovery and keeps your metabolism active on rest days.`,
+    build_muscle: `${km} km walk aids recovery and keeps your metabolism active.`,
     stay_fit: `${km} km daily walk maintains cardiovascular health and keeps you energised.`,
     build_consistency: `Start with ${km} km — consistency beats intensity every time.`,
   };
   return { km, note: notes[goal] || `Walk ${km} km at a comfortable pace today.` };
 }
 
-function getDayOfWeek(): number {
-  return new Date().getDay(); // 0=Sun, 1=Mon...
-}
-
-function buildWorkoutOption(
-  category: 'upper_body' | 'lower_body' | 'cardio',
-  intensity: string,
-  day: number,
-): WorkoutOption {
-  const meta: Record<string, { emoji: string; titles: Record<string, string>; descs: Record<string, string>; durations: Record<string, string> }> = {
-    upper_body: {
-      emoji: '💪',
-      titles: { low: 'Light Upper Body', moderate: 'Upper Body Strength', high: 'Upper Body Power' },
-      descs: { low: 'Gentle movements to keep your upper body engaged.', moderate: 'Build strength in your arms, shoulders and back.', high: 'Push your upper body to build lean muscle.' },
-      durations: { low: '15 min', moderate: '25 min', high: '35 min' },
-    },
-    lower_body: {
-      emoji: '🦵',
-      titles: { low: 'Light Lower Body', moderate: 'Lower Body Strength', high: 'Lower Body Power' },
-      descs: { low: 'Easy leg movements to stay mobile.', moderate: 'Strengthen legs and glutes for everyday power.', high: 'Intense leg session for serious results.' },
-      durations: { low: '15 min', moderate: '25 min', high: '35 min' },
-    },
-    cardio: {
-      emoji: '❤️‍🔥',
-      titles: { low: 'Light Cardio', moderate: 'Cardio Burn', high: 'HIIT Cardio Blast' },
-      descs: { low: 'Get your heart rate up gently.', moderate: 'Steady-state cardio to burn calories effectively.', high: 'High-intensity intervals for maximum fat burn.' },
-      durations: { low: '15 min', moderate: '25 min', high: '30 min' },
-    },
-  };
-
-  const m = meta[category];
-  const exercisePools: Record<string, Record<string, Record<number, string[]>>> = {
-    upper_body: { low: UPPER_LOW_DAILY, moderate: UPPER_BODY_DAILY, high: UPPER_BODY_DAILY },
-    lower_body: { low: LOWER_LOW_DAILY, moderate: LOWER_BODY_DAILY, high: LOWER_BODY_DAILY },
-    cardio: { low: CARDIO_LOW_DAILY, moderate: CARDIO_DAILY, high: CARDIO_DAILY },
-  };
-
-  return {
-    category,
-    emoji: m.emoji,
-    title: m.titles[intensity] || m.titles.moderate,
-    description: m.descs[intensity] || m.descs.moderate,
-    duration: m.durations[intensity] || m.durations.moderate,
-    exercises: exercisePools[category][intensity]?.[day] || exercisePools[category].moderate[day],
-  };
-}
-
-function getWorkoutRotation(goal: string, day: number): ('upper_body' | 'lower_body' | 'cardio')[] {
-  if (goal === 'lose_weight' || goal === 'fat_loss') {
-    const patterns: ('upper_body' | 'lower_body' | 'cardio')[][] = [
-      ['cardio', 'upper_body'], // Sun
-      ['lower_body', 'cardio'], // Mon
-      ['upper_body', 'cardio'], // Tue
-      ['cardio', 'lower_body'], // Wed
-      ['upper_body', 'cardio'], // Thu
-      ['lower_body', 'cardio'], // Fri
-      ['cardio'],               // Sat - active recovery
-    ];
-    return patterns[day];
-  }
-  if (goal === 'build_muscle') {
-    const patterns: ('upper_body' | 'lower_body' | 'cardio')[][] = [
-      ['upper_body', 'lower_body'], // Sun
-      ['lower_body', 'upper_body'], // Mon
-      ['upper_body', 'cardio'],     // Tue
-      ['lower_body', 'upper_body'], // Wed
-      ['upper_body', 'lower_body'], // Thu
-      ['cardio', 'lower_body'],     // Fri
-      ['upper_body'],               // Sat
-    ];
-    return patterns[day];
-  }
-  // stay_fit / build_consistency — balanced
-  const patterns: ('upper_body' | 'lower_body' | 'cardio')[][] = [
-    ['cardio', 'upper_body'],     // Sun
-    ['lower_body', 'cardio'],     // Mon
-    ['upper_body', 'lower_body'], // Tue
-    ['cardio'],                   // Wed
-    ['lower_body', 'upper_body'], // Thu
-    ['cardio', 'lower_body'],     // Fri
-    ['upper_body'],               // Sat
-  ];
-  return patterns[day];
+// Map 0=Sun..6=Sat → split day index (0-based, 6-day cycle starting Monday)
+function getSplitDayIndex(): number {
+  const jsDay = new Date().getDay(); // 0=Sun
+  // Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=rest(5)
+  if (jsDay === 0) return 5; // Sunday = rest day
+  return jsDay - 1; // Mon=0 .. Sat=5
 }
 
 // Check-in adaptive logic
 export function getWorkoutSuggestion(checkIn: CheckInData, goal: string = 'stay_fit'): WorkoutPlan {
   const intensity = getIntensityLevel(checkIn);
   const walkTarget = getWalkTarget(goal, intensity);
+  const splitIdx = getSplitDayIndex();
+  const todaySplit = WEEKLY_SPLIT[splitIdx];
+  const dayNum = splitIdx + 1;
+  const dayLabel = todaySplit.category === 'rest' ? 'Day 6 — Rest Day' : `Day ${dayNum} — ${todaySplit.title}`;
 
   if (checkIn.mind === 'heavy') {
     return {
       message: "Let's keep it gentle today. A walk is your workout.",
+      dayLabel,
       options: [{
         category: 'walk', emoji: '🚶', title: 'Mindful Walk',
         description: 'Step outside, breathe deep. That\'s your move today.',
@@ -301,25 +302,37 @@ export function getWorkoutSuggestion(checkIn: CheckInData, goal: string = 'stay_
     };
   }
 
-  const day = getDayOfWeek();
-  const rotation = getWorkoutRotation(goal, day);
-  const options: WorkoutOption[] = rotation.map(cat => buildWorkoutOption(cat, intensity, day));
+  const exercises = intensity === 'low' ? todaySplit.lowExercises : todaySplit.exercises;
 
-  // Always include walk as an option
-  options.push({
-    category: 'walk', emoji: '🚶', title: `Walk — ${walkTarget.km} km`,
-    description: walkTarget.note,
-    duration: `~${Math.round(walkTarget.km * 12)} min`,
-  });
+  const mainWorkout: WorkoutOption = {
+    category: todaySplit.category,
+    emoji: todaySplit.emoji,
+    title: todaySplit.title,
+    description: todaySplit.description,
+    duration: todaySplit.duration,
+    exercises,
+  };
+
+  const options: WorkoutOption[] = [mainWorkout];
+
+  // Add walk alongside (not on rest day)
+  if (todaySplit.category !== 'rest') {
+    options.push({
+      category: 'walk', emoji: '🚶', title: `Daily Walk — ${walkTarget.km} km`,
+      description: walkTarget.note,
+      duration: `~${Math.round(walkTarget.km * 12)} min`,
+    });
+  }
 
   const messages: Record<string, string> = {
-    low: 'Take it easy today — pick what feels right.',
-    moderate: "You've got good energy. Choose your workout.",
-    high: "You're fired up — make the most of today!",
+    low: 'Take it easy today — lighter version of your workout.',
+    moderate: "You've got good energy. Let's hit today's workout.",
+    high: "You're fired up — give it your all today!",
   };
 
   return {
-    message: messages[intensity],
+    message: todaySplit.category === 'rest' ? 'Today is your rest day. Recovery is part of the process.' : (messages[intensity] || messages.moderate),
+    dayLabel,
     options,
     walkTarget,
   };
