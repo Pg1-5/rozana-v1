@@ -89,10 +89,70 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: isStressed ? 0.5 : 0.2 }}
         >
-          <h2 className="text-xs text-muted-foreground font-body uppercase tracking-widest mb-4">Move</h2>
-          <div className="card-surface p-5 mb-8">
-            <p className="font-body font-medium text-foreground">{workout.title}</p>
-            <p className="text-sm text-muted-foreground font-body mt-1">{workout.description}</p>
+          <h2 className="text-xs text-muted-foreground font-body uppercase tracking-widest mb-2">Move</h2>
+          <p className="text-sm font-body text-foreground/80 mb-4">{workout.message}</p>
+
+          {/* Walk target */}
+          <div className="card-surface p-4 mb-4 flex items-center gap-3">
+            <span className="text-lg">🚶</span>
+            <div>
+              <p className="text-sm font-body font-medium text-foreground">Daily walk: {workout.walkTarget.km} km</p>
+              <p className="text-xs font-body text-muted-foreground">{workout.walkTarget.note}</p>
+            </div>
+          </div>
+
+          <div className="space-y-3 mb-8">
+            {workout.options.filter(o => o.category !== 'walk').map((opt, idx) => {
+              const isSelected = selectedWorkout === idx;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedWorkout(isSelected ? null : idx)}
+                  className="w-full text-left transition-all"
+                >
+                  <div
+                    className={`p-5 rounded-lg transition-all ${
+                      isSelected
+                        ? 'ring-2 ring-primary bg-primary/5'
+                        : 'card-surface hover:bg-card-hover'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                            isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/30'
+                          }`}
+                        >
+                          {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                        </div>
+                        <span className="text-base mr-2">{opt.emoji}</span>
+                        <h3 className="font-body font-medium text-foreground">{opt.title}</h3>
+                      </div>
+                      <span className="text-xs font-body text-muted-foreground flex-shrink-0">{opt.duration}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground font-body mt-1 ml-7">{opt.description}</p>
+
+                    {isSelected && opt.exercises && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ul className="space-y-1.5 mt-3 ml-7">
+                          {opt.exercises.map((ex, i) => (
+                            <li key={i} className="text-sm font-body text-foreground/80 leading-relaxed flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                              {ex}
+                            </li>
+                          ))}
+                        </ul>
+                      </motion.div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </motion.div>
 
