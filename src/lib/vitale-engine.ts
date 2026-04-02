@@ -284,12 +284,6 @@ function getWorkoutRotation(goal: string, day: number): ('upper_body' | 'lower_b
   return patterns[day];
 }
 
-const POOLS: Record<string, Record<string, WorkoutOption>> = {
-  upper_body: UPPER_BODY,
-  lower_body: LOWER_BODY,
-  cardio: CARDIO,
-};
-
 // Check-in adaptive logic
 export function getWorkoutSuggestion(checkIn: CheckInData, goal: string = 'stay_fit'): WorkoutPlan {
   const intensity = getIntensityLevel(checkIn);
@@ -309,7 +303,7 @@ export function getWorkoutSuggestion(checkIn: CheckInData, goal: string = 'stay_
 
   const day = getDayOfWeek();
   const rotation = getWorkoutRotation(goal, day);
-  const options: WorkoutOption[] = rotation.map(cat => POOLS[cat][intensity]);
+  const options: WorkoutOption[] = rotation.map(cat => buildWorkoutOption(cat, intensity, day));
 
   // Always include walk as an option
   options.push({
