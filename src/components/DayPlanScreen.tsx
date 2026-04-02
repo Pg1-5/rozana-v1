@@ -42,7 +42,8 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
 
   const isStressed = checkIn.mind === 'heavy';
 
-  // Track selected meal per slot
+  // Track selected workout and meal per slot
+  const [selectedWorkout, setSelectedWorkout] = useState<number | null>(null);
   const [selections, setSelections] = useState<Record<number, number>>({});
 
   const selectMeal = (slotIndex: number, optionIndex: number) => {
