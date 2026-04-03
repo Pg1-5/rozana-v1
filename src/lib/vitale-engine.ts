@@ -279,83 +279,59 @@ function getWalkTarget(goal: string, intensity: string): { km: number; note: str
   return { km, note: notes[goal] || `Walk ${km} km at a comfortable pace today.` };
 }
 
-// Map 0=Sun..6=Sat → split day index (0-based, 5-day cycle + rest)
-function getSplitDayIndex(): number {
-  const jsDay = new Date().getDay(); // 0=Sun
-  if (jsDay === 0) return 5; // Sunday = rest day
-  return jsDay - 1; // Mon=0 .. Sat=5
+// Workout categories (excluding rest day entry from WEEKLY_SPLIT)
+const EXERCISE_SPLITS = WEEKLY_SPLIT.filter(s => s.category !== 'rest');
+
+// Get two rotating exercise options that change each day
+function getRotatingPair(): [DaySplit, DaySplit] {
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  const idx1 = dayOfYear % EXERCISE_SPLITS.length;
+  const idx2 = (dayOfYear + 1) % EXERCISE_SPLITS.length;
+  return [EXERCISE_SPLITS[idx1], EXERCISE_SPLITS[idx2]];
 }
+
+function buildWalkOption(walkTarget: { km: number; note: string }): WorkoutOption {
+  return {
+    category: 'walk', emoji: '🚶', title: `Daily Walk — ${walkTarget.km} km`,
+    description: walkTarget.note,
+    duration: `~${Math.round(walkTarget.km * 12)} min`,
+  };
+}
+
+const REST_OPTION: WorkoutOption = {
+  category: 'rest', emoji: '😌', title: 'Rest Today',
+  description: 'Not feeling it? Rest is progress too. Stretch, hydrate, recover.',
+  duration: '—',
+  exercises: ['Light stretching — 10 min', 'Deep breathing — 5 min', 'Hydrate well'],
+};
 
 // Check-in adaptive logic
 export function getWorkoutSuggestion(checkIn: CheckInData, goal: string = 'stay_fit'): WorkoutPlan {
   const intensity = getIntensityLevel(checkIn);
   const walkTarget = getWalkTarget(goal, intensity);
-  const splitIdx = getSplitDayIndex();
-  const todaySplit = WEEKLY_SPLIT[splitIdx];
-  const dayLabel = todaySplit.title;
+  const walkOption = buildWalkOption(walkTarget);
+  const [splitA, splitB] = getRotatingPair();
 
-  // Rest day from schedule
-  if (todaySplit.category === 'rest') {
-    return {
-      message: 'Today is your rest day. Recovery is part of the process.',
-      dayLabel: 'Rest Day',
-      options: [{
-        category: 'rest', emoji: '😌', title: 'Rest Day',
-        description: todaySplit.description,
-        duration: '—',
-        exercises: todaySplit.exercises,
-      }],
-      walkTarget,
-    };
-  }
-
-  // Heavy mind → walk only
+  // Heavy mind → walk only + rest
   if (checkIn.mind === 'heavy') {
     return {
       message: "Let's keep it gentle today. A walk is your workout.",
-      dayLabel,
-      options: [
-        {
-          category: 'walk', emoji: '🚶', title: `Daily Walk — ${walkTarget.km} km`,
-          description: walkTarget.note,
-          duration: `~${Math.round(walkTarget.km * 12)} min`,
-        },
-        {
-          category: 'rest', emoji: '😌', title: 'Rest Today',
-          description: 'Not feeling it? Rest is progress too. Stretch, hydrate, recover.',
-          duration: '—',
-          exercises: ['Light stretching — 10 min', 'Deep breathing — 5 min', 'Hydrate well'],
-        },
-      ],
+      dayLabel: 'Light Day',
+      walk: walkOption,
+      exerciseOptions: [],
+      restOption: REST_OPTION,
       walkTarget,
     };
   }
 
-  const exercises = intensity === 'low' ? todaySplit.lowExercises : todaySplit.exercises;
-
-  const mainWorkout: WorkoutOption = {
-    category: todaySplit.category,
-    emoji: todaySplit.emoji,
-    title: todaySplit.title,
-    description: todaySplit.description,
-    duration: todaySplit.duration,
-    exercises,
-  };
-
-  const options: WorkoutOption[] = [
-    mainWorkout,
-    {
-      category: 'walk', emoji: '🚶', title: `Daily Walk — ${walkTarget.km} km`,
-      description: walkTarget.note,
-      duration: `~${Math.round(walkTarget.km * 12)} min`,
-    },
-    {
-      category: 'rest', emoji: '😌', title: 'Rest Today',
-      description: 'Not feeling it? Rest is progress too. Stretch, hydrate, recover.',
-      duration: '—',
-      exercises: ['Light stretching — 10 min', 'Deep breathing — 5 min', 'Hydrate well'],
-    },
-  ];
+  const buildExerciseOption = (split: DaySplit): WorkoutOption => ({
+    category: split.category,
+    emoji: split.emoji,
+    title: split.title,
+    description: split.description,
+    duration: split.duration,
+    exercises: intensity === 'low' ? split.lowExercises : split.exercises,
+  });
 
   const messages: Record<string, string> = {
     low: 'Take it easy today — lighter version of your workout.',
@@ -365,8 +341,10 @@ export function getWorkoutSuggestion(checkIn: CheckInData, goal: string = 'stay_
 
   return {
     message: messages[intensity] || messages.moderate,
-    dayLabel,
-    options,
+    dayLabel: `${splitA.title} or ${splitB.title}`,
+    walk: walkOption,
+    exerciseOptions: [buildExerciseOption(splitA), buildExerciseOption(splitB)],
+    restOption: REST_OPTION,
     walkTarget,
   };
 }
