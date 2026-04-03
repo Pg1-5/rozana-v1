@@ -113,7 +113,7 @@ export default function InsightScreen({ profile, onContinue, onBack, onForward }
           </div>
           <div className="flex justify-between text-sm font-body">
             <span className="text-muted-foreground">Calorie adjustment</span>
-            <span className="text-foreground">{getGoalAdjustmentLabel(profile.goal)}</span>
+            <span className="text-foreground">{getGoalAdjustmentLabel(profile.goals)}</span>
           </div>
           <div className="flex justify-between text-sm font-body">
             <span className="text-muted-foreground">BMI</span>
