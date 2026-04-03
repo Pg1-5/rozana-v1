@@ -34,7 +34,9 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
   const tdee = calculateTDEE(bmr, profile.activityLevel);
   const target = calculateTargetCalories(tdee, profile.goals);
   const usedRecipes = getUsedRecipes();
-  const mealSlots = getRecipeSuggestions(primaryGoal, checkIn.dietPreferences, target, checkIn.kitchenInput, usedRecipes);
+  const initialSlots = getRecipeSuggestions(primaryGoal, checkIn.dietPreferences, target, checkIn.kitchenInput, usedRecipes);
+
+  const [mealSlots, setMealSlots] = useState<MealSlot[]>(initialSlots);
 
   // Mark today's recipes as used
   useEffect(() => {
@@ -51,6 +53,32 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
   const selectMeal = (slotIndex: number, optionIndex: number) => {
     setSelections((prev) => ({ ...prev, [slotIndex]: optionIndex }));
   };
+
+  // Refresh a meal option: replace one option with a new one
+  const refreshMealOption = useCallback((slotIdx: number, optIdx: number) => {
+    const slot = mealSlots[slotIdx];
+    const excludeNames = slot.options.map(o => o.name);
+    const newRecipe = getRefreshedMealOption(
+      primaryGoal,
+      checkIn.dietPreferences,
+      target,
+      slotIdx,
+      excludeNames,
+      checkIn.kitchenInput,
+    );
+    if (!newRecipe) return;
+    setMealSlots(prev => {
+      const updated = [...prev];
+      const newOptions = [...updated[slotIdx].options] as [Recipe, Recipe, Recipe];
+      newOptions[optIdx] = newRecipe;
+      updated[slotIdx] = { ...updated[slotIdx], options: newOptions };
+      return updated;
+    });
+    // Clear selection for that slot if the replaced option was selected
+    if (selections[slotIdx] === optIdx) {
+      setSelections(prev => { const n = { ...prev }; delete n[slotIdx]; return n; });
+    }
+  }, [mealSlots, primaryGoal, checkIn, target, selections]);
 
   const dietLabel = checkIn.dietPreferences
     .map((p) => p === 'vegetarian' ? '🥦 Veg' : p === 'non_vegetarian' ? '🍗 Non-Veg' : '🥚 Egg')
