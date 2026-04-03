@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import WelcomeScreen from '@/components/WelcomeScreen';
 import OnboardingFlow from '@/components/OnboardingFlow';
 import InsightScreen from '@/components/InsightScreen';
 import CheckInScreen from '@/components/CheckInScreen';
@@ -11,7 +12,7 @@ import { UserProfile, CheckInData } from '@/lib/vitale-engine';
 import { saveProfile, getProfile, saveCheckIn, getTodayCheckIn, saveReflection, addMomentum, clearAll } from '@/lib/vitale-store';
 import { addCommunityPost } from '@/lib/community-store';
 
-const SCREENS = ['onboarding', 'insight', 'checkin', 'dayplan', 'reflection', 'progress', 'community'] as const;
+const SCREENS = ['welcome', 'onboarding', 'insight', 'checkin', 'dayplan', 'reflection', 'progress', 'community'] as const;
 type Screen = (typeof SCREENS)[number];
 
 // Demo stats for sharing
@@ -40,7 +41,7 @@ const SHARE_MESSAGES: Record<string, string[]> = {
 };
 
 export default function Index() {
-  const [screen, setScreen] = useState<Screen>('onboarding');
+  const [screen, setScreen] = useState<Screen>('welcome');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [checkIn, setCheckIn] = useState<CheckInData | null>(null);
   const [history, setHistory] = useState<Screen[]>([]);
@@ -136,6 +137,8 @@ export default function Index() {
   const canGoForward = !!getForwardScreen();
 
   switch (screen) {
+    case 'welcome':
+      return <WelcomeScreen onStart={() => goTo('onboarding')} />;
     case 'onboarding':
       return <OnboardingFlow onComplete={handleOnboardingComplete} />;
     case 'insight':
