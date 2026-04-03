@@ -12,7 +12,7 @@ import { UserProfile, CheckInData } from '@/lib/vitale-engine';
 import { saveProfile, getProfile, saveCheckIn, getTodayCheckIn, saveReflection, addMomentum, clearAll } from '@/lib/vitale-store';
 import { addCommunityPost } from '@/lib/community-store';
 
-const SCREENS = ['onboarding', 'insight', 'checkin', 'dayplan', 'reflection', 'progress', 'community'] as const;
+const SCREENS = ['welcome', 'onboarding', 'insight', 'checkin', 'dayplan', 'reflection', 'progress', 'community'] as const;
 type Screen = (typeof SCREENS)[number];
 
 // Demo stats for sharing
