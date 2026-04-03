@@ -96,13 +96,13 @@ export function getGoalAdjustmentLabel(goals: string[]): string {
 }
 
 export function getDynamicCopy(goals: string[], tdee: number): string {
-  const primary = getPrimaryGoal(goals);
+  const primary = getTopPriorityGoal(goals);
   switch (primary) {
-    case 'lose_weight': return `To stay on track, your body needs around ${tdee} kcal/day. We'll guide you slightly below this to support steady weight loss.`;
-    case 'fat_loss': return `Your maintenance is ${tdee} kcal/day. A moderate deficit helps burn fat while keeping your muscle intact.`;
+    case 'lose_weight': return `To stay on track, your body needs around ${tdee} kcal/day. A 300 kcal deficit helps you lose weight safely and sustainably.`;
+    case 'fat_loss': return `Your maintenance is ${tdee} kcal/day. A moderate 300 kcal deficit helps burn fat while keeping your muscle intact.`;
     case 'stay_fit': return `Your body runs well at around ${tdee} kcal/day. We'll help you stay right there.`;
     case 'build_consistency': return `Numbers matter less right now. Your baseline is ${tdee} kcal/day — we'll keep things simple and sustainable.`;
-    case 'build_muscle': return `To grow, your body needs a little more. We'll work slightly above your ${tdee} kcal/day baseline.`;
+    case 'build_muscle': return `To grow, your body needs a little more. We'll add 200 kcal above your ${tdee} kcal/day baseline.`;
     default: return '';
   }
 }
