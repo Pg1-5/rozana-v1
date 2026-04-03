@@ -146,6 +146,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
                 unit="yrs"
                 value={profile.age}
                 onChange={(v) => update('age', v)}
+                error={validationError}
               />
             )}
 
@@ -155,6 +156,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
                 unit="kg"
                 value={profile.weight}
                 onChange={(v) => update('weight', v)}
+                error={validationError}
               />
             )}
 
@@ -164,6 +166,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
                 unit="cm"
                 value={profile.height}
                 onChange={(v) => update('height', v)}
+                error={validationError}
               />
             )}
 
