@@ -719,7 +719,6 @@ export function getRecipeSuggestions(goal: string, dietPreferences: DietPreferen
 
 export const GOAL_OPTIONS = [
   { id: 'lose_weight', emoji: '🎯', title: 'Weight loss', description: 'Reduce overall body weight gradually' },
-  { id: 'lose_weight', emoji: '🎯', title: 'Weight loss', description: 'Reduce overall body weight' },
   { id: 'fat_loss', emoji: '🔥', title: 'Fat loss', description: 'Burn fat while preserving muscle' },
   { id: 'stay_fit', emoji: '✨', title: 'Stay fit', description: 'Maintain weight and improve energy' },
   { id: 'build_consistency', emoji: '🧱', title: 'Build consistency', description: 'Focus on habits' },
