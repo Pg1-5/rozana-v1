@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
 import { UserProfile, GOAL_OPTIONS, ACTIVITY_OPTIONS } from '@/lib/vitale-engine';
