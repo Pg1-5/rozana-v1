@@ -84,8 +84,9 @@ export function getGoalAdjustmentLabel(goals: string[]): string {
   return 'No adjustment';
 }
 
-export function getDynamicCopy(goal: string, tdee: number): string {
-  switch (goal) {
+export function getDynamicCopy(goals: string[], tdee: number): string {
+  const primary = getPrimaryGoal(goals);
+  switch (primary) {
     case 'lose_weight': return `To stay on track, your body needs around ${tdee} kcal/day. We'll guide you slightly below this to support steady weight loss.`;
     case 'fat_loss': return `Your maintenance is ${tdee} kcal/day. A moderate deficit helps burn fat while keeping your muscle intact.`;
     case 'stay_fit': return `Your body runs well at around ${tdee} kcal/day. We'll help you stay right there.`;
@@ -95,15 +96,17 @@ export function getDynamicCopy(goal: string, tdee: number): string {
   }
 }
 
-export function getGoalTip(goal: string): string {
-  switch (goal) {
-    case 'lose_weight': return 'A 500 cal/day deficit creates roughly 0.5kg loss per week. Focus on protein-rich, filling foods. Never go below your BMR.';
-    case 'fat_loss': return 'A 300 cal deficit preserves muscle while burning fat. Add strength training 3x/week and aim for 1.6-2g protein per kg bodyweight.';
-    case 'stay_fit': return 'Eat at your maintenance calories. Prioritise food quality, sleep, and daily movement. Your body will naturally improve over time.';
-    case 'build_consistency': return 'Calories matter less than showing up. Move your body daily, eat close to your baseline, and track without obsessing.';
-    case 'build_muscle': return 'A 300 cal surplus supports lean muscle growth. Prioritise progressive overload and 1.8-2.2g protein per kg bodyweight.';
-    default: return '';
-  }
+export function getGoalTip(goals: string[]): string {
+  return goals.map(g => {
+    switch (g) {
+      case 'lose_weight': return 'A 500 cal/day deficit creates roughly 0.5kg loss per week. Focus on protein-rich, filling foods.';
+      case 'fat_loss': return 'A 300 cal deficit preserves muscle while burning fat. Add strength training 3x/week.';
+      case 'stay_fit': return 'Eat at your maintenance calories. Prioritise food quality, sleep, and daily movement.';
+      case 'build_consistency': return 'Calories matter less than showing up. Move your body daily and track without obsessing.';
+      case 'build_muscle': return 'A 300 cal surplus supports lean muscle growth. Prioritise progressive overload.';
+      default: return '';
+    }
+  }).filter(Boolean).join(' • ');
 }
 
 // Workout types

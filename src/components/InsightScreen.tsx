@@ -129,7 +129,7 @@ export default function InsightScreen({ profile, onContinue, onBack, onForward }
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
         >
-          <p className="text-sm font-body text-foreground leading-relaxed">{getGoalTip(profile.goal)}</p>
+          <p className="text-sm font-body text-foreground leading-relaxed">{getGoalTip(profile.goals)}</p>
         </motion.div>
 
         <motion.button
