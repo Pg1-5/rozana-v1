@@ -15,17 +15,53 @@ interface Message {
   content: string;
 }
 
-function speak(text: string) {
+type RoziLang = 'en' | 'hi';
+
+const LANG_STORAGE_KEY = 'rozi-language';
+
+function getSavedLang(): RoziLang {
+  return (localStorage.getItem(LANG_STORAGE_KEY) as RoziLang) || 'en';
+}
+
+function saveLang(lang: RoziLang) {
+  localStorage.setItem(LANG_STORAGE_KEY, lang);
+}
+
+function pickFemaleVoice(lang: string): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices();
+  const femaleKeywords = ['female', 'priya', 'aditi', 'sundar', 'zira', 'samantha', 'google'];
+  const langVoices = voices.filter(v => v.lang.startsWith(lang.split('-')[0]));
+
+  // Try to find a female voice matching exact lang
+  const exactMatch = langVoices.filter(v => v.lang.replace('_', '-').toLowerCase().includes(lang.toLowerCase()));
+  for (const v of exactMatch) {
+    if (femaleKeywords.some(k => v.name.toLowerCase().includes(k))) return v;
+  }
+  // Fallback: any voice for this language
+  for (const v of langVoices) {
+    if (femaleKeywords.some(k => v.name.toLowerCase().includes(k))) return v;
+  }
+  // Fallback: first lang voice or null
+  return langVoices[0] || null;
+}
+
+function speak(text: string, lang: RoziLang) {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-IN';
-    utterance.rate = 0.95;
-    utterance.pitch = 1.1;
-    // Try to find a female Indian English voice
-    const voices = window.speechSynthesis.getVoices();
-    const indianVoice = voices.find(v => v.lang.includes('en-IN') || v.lang.includes('en_IN'));
-    if (indianVoice) utterance.voice = indianVoice;
+    const speechLang = lang === 'hi' ? 'hi-IN' : 'en-IN';
+    utterance.lang = speechLang;
+    utterance.rate = 0.9;
+    utterance.pitch = 1.15;
+
+    const voice = pickFemaleVoice(speechLang);
+    if (voice) {
+      utterance.voice = voice;
+    } else if (lang === 'en') {
+      // Fallback to en-US female
+      const fallback = pickFemaleVoice('en-US');
+      if (fallback) utterance.voice = fallback;
+    }
     window.speechSynthesis.speak(utterance);
   }
 }
@@ -57,7 +93,21 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isThinking, setIsThinking] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [lang, setLang] = useState<RoziLang>(getSavedLang);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Preload voices
+  useEffect(() => {
+    window.speechSynthesis?.getVoices();
+    const handler = () => window.speechSynthesis?.getVoices();
+    window.speechSynthesis?.addEventListener?.('voiceschanged', handler);
+    return () => window.speechSynthesis?.removeEventListener?.('voiceschanged', handler);
+  }, []);
+
+  const handleLangSwitch = (newLang: RoziLang) => {
+    setLang(newLang);
+    saveLang(newLang);
+  };
 
   const sendToRozi = useCallback(async (userText: string) => {
     const userMsg: Message = { role: 'user', content: userText };
@@ -67,60 +117,56 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
 
     try {
       const { data, error } = await supabase.functions.invoke('rozi-chat', {
-        body: { messages: updated },
+        body: { messages: updated, lang },
       });
 
       if (error) throw error;
 
-      const reply = data?.reply || "Sorry, I couldn't process that. Try again?";
+      const reply = data?.reply || (lang === 'hi' ? 'Maaf kijiye, dobara try karein?' : "Sorry, I couldn't process that. Try again?");
       const assistantMsg: Message = { role: 'assistant', content: reply };
       setMessages(prev => [...prev, assistantMsg]);
 
-      // Speak the clean text
       const displayText = cleanDisplayText(reply);
       if (displayText) {
         setIsSpeaking(true);
-        speak(displayText);
+        speak(displayText, lang);
         setTimeout(() => setIsSpeaking(false), displayText.length * 60);
       }
 
-      // Check for completed check-in data
       const checkInData = parseCheckInData(reply);
       if (checkInData) {
-        setTimeout(() => {
-          onCheckInComplete(checkInData);
-        }, 2000);
+        setTimeout(() => onCheckInComplete(checkInData), 2000);
       }
     } catch (e) {
       console.error('Rozi chat error:', e);
-      setMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Let's try again — how are you feeling?" }]);
+      const fallback = lang === 'hi'
+        ? 'Kuch gadbad ho gayi. Chaliye dobara try karte hain — aap kaisi feel kar rahi hain?'
+        : "Something went wrong. Let's try again — how are you feeling?";
+      setMessages(prev => [...prev, { role: 'assistant', content: fallback }]);
     } finally {
       setIsThinking(false);
     }
-  }, [messages, onCheckInComplete]);
+  }, [messages, onCheckInComplete, lang]);
 
   const voiceInput = useVoiceInput({
-    onResult: (text) => {
-      sendToRozi(text);
-    },
-    onError: (e) => {
-      console.error('Voice error:', e);
-    },
+    onResult: (text) => sendToRozi(text),
+    onError: (e) => console.error('Voice error:', e),
+    lang: lang === 'hi' ? 'hi-IN' : 'en-IN',
   });
 
-  // Auto-scroll to bottom
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, isThinking]);
 
-  // Start conversation when opened
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      const greeting = `Hi ${userName}! I'm Rozi, your health coach. Tell me, how's your energy today — low, balanced, or high?`;
+      const greeting = lang === 'hi'
+        ? `Namaste ${userName}! Main Rozi hoon, aapki health coach. Batao, aaj aapki energy kaisi hai — kam, balanced ya high?`
+        : `Hi ${userName}! I'm Rozi, your health coach. Tell me, how's your energy today — low, balanced, or high?`;
       setMessages([{ role: 'assistant', content: greeting }]);
-      speak(greeting);
+      speak(greeting, lang);
     }
-  }, [isOpen, userName]);
+  }, [isOpen, userName, lang]);
 
   if (!isOpen) {
     return (
@@ -149,19 +195,48 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <div>
-            <h2 className="font-heading text-lg font-semibold text-foreground">🎙️ Rozi</h2>
-            <p className="text-xs text-muted-foreground font-body">Your AI health coach</p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h2 className="font-heading text-lg font-semibold text-foreground">🎙️ Rozi</h2>
+              <p className="text-xs text-muted-foreground font-body">
+                {lang === 'hi' ? 'Aapki AI health coach' : 'Your AI health coach'}
+              </p>
+            </div>
           </div>
-          <button
-            onClick={() => {
-              window.speechSynthesis?.cancel();
-              setIsOpen(false);
-            }}
-            className="w-8 h-8 rounded-full card-surface flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X size={16} />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Language Toggle */}
+            <div className="flex rounded-full border border-border overflow-hidden text-xs font-body">
+              <button
+                onClick={() => handleLangSwitch('en')}
+                className={`px-3 py-1.5 transition-colors ${
+                  lang === 'en'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                EN
+              </button>
+              <button
+                onClick={() => handleLangSwitch('hi')}
+                className={`px-3 py-1.5 transition-colors ${
+                  lang === 'hi'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                HI
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                window.speechSynthesis?.cancel();
+                setIsOpen(false);
+              }}
+              className="w-8 h-8 rounded-full card-surface flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Messages */}
@@ -187,7 +262,7 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
           {isThinking && (
             <motion.div className="flex justify-start" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="card-surface rounded-2xl rounded-bl-sm px-4 py-3 text-sm font-body text-muted-foreground">
-                Rozi is thinking...
+                {lang === 'hi' ? 'Rozi soch rahi hai...' : 'Rozi is thinking...'}
               </div>
             </motion.div>
           )}
@@ -196,7 +271,12 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
         {/* Mic controls */}
         <div className="px-6 py-6 border-t border-border flex flex-col items-center gap-3">
           <p className="text-xs text-muted-foreground font-body">
-            {voiceInput.isListening ? '🔴 Listening...' : isSpeaking ? '🗣️ Rozi is speaking...' : 'Tap the mic to speak'}
+            {voiceInput.isListening
+              ? (lang === 'hi' ? '🔴 Sun rahi hoon...' : '🔴 Listening...')
+              : isSpeaking
+                ? (lang === 'hi' ? '🗣️ Rozi bol rahi hai...' : '🗣️ Rozi is speaking...')
+                : (lang === 'hi' ? 'Mic tap karein bolne ke liye' : 'Tap the mic to speak')
+            }
           </p>
           <motion.button
             onClick={voiceInput.toggle}
