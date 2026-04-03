@@ -5,8 +5,13 @@ export interface UserProfile {
   age: number;
   weight: number;
   height: number;
-  goal: string;
+  goals: string[];
   activityLevel: string;
+}
+
+// Helper: get primary goal (first selected) for single-goal functions
+export function getPrimaryGoal(goals: string[]): string {
+  return goals[0] || 'stay_fit';
 }
 
 export type DietPreference = 'vegetarian' | 'non_vegetarian' | 'eggitarian';
