@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
 import { UserProfile, GOAL_OPTIONS, ACTIVITY_OPTIONS } from '@/lib/vitale-engine';
@@ -22,13 +22,37 @@ export default function OnboardingFlow({ onComplete }: Props) {
   const back = () => setStep((s) => Math.max(0, s - 1));
   const update = (field: string, value: string | number) => setProfile((p) => ({ ...p, [field]: value }));
 
+  const getValidationError = (): string | null => {
+    if (step === 2 && profile.age !== undefined) {
+      if (profile.age < 13) return "This app is designed for users aged 13 and above.";
+      if (profile.age > 80) return "Please enter a valid age between 13 and 80.";
+    }
+    if (step === 3 && profile.weight !== undefined) {
+      if (profile.weight < 30) return "The weight entered seems a bit low — please enter at least 30 kg.";
+      if (profile.weight > 200) return "Let's double-check this value — please enter a weight under 200 kg.";
+    }
+    if (step === 4 && profile.height !== undefined) {
+      if (profile.height < 100) return "Please enter a height of at least 100 cm.";
+      if (profile.height > 250) return "This doesn't look quite right — please enter a height under 250 cm.";
+    }
+    // Age–weight correlation
+    if (step === 3 && profile.age && profile.weight) {
+      const minWeight = profile.age < 18 ? 25 : 35;
+      if (profile.weight < minWeight) return "The weight entered seems too low for the selected age. Please check and update.";
+    }
+    return null;
+  };
+
+  const validationError = getValidationError();
+
   const canProceed = () => {
+    if (validationError) return false;
     switch (step) {
       case 0: return !!profile.name?.trim();
       case 1: return !!profile.gender;
-      case 2: return !!profile.age && profile.age > 0;
-      case 3: return !!profile.weight && profile.weight > 0;
-      case 4: return !!profile.height && profile.height > 0;
+      case 2: return !!profile.age && profile.age >= 13 && profile.age <= 80;
+      case 3: return !!profile.weight && profile.weight >= 30 && profile.weight <= 200;
+      case 4: return !!profile.height && profile.height >= 100 && profile.height <= 250;
       case 5: return !!profile.goal;
       case 6: return !!profile.activityLevel;
       default: return false;
@@ -122,6 +146,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
                 unit="yrs"
                 value={profile.age}
                 onChange={(v) => update('age', v)}
+                error={validationError}
               />
             )}
 
@@ -131,6 +156,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
                 unit="kg"
                 value={profile.weight}
                 onChange={(v) => update('weight', v)}
+                error={validationError}
               />
             )}
 
@@ -140,6 +166,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
                 unit="cm"
                 value={profile.height}
                 onChange={(v) => update('height', v)}
+                error={validationError}
               />
             )}
 
@@ -228,24 +255,38 @@ export default function OnboardingFlow({ onComplete }: Props) {
   );
 }
 
-function NumberInput({ question, unit, value, onChange }: {
+function NumberInput({ question, unit, value, onChange, error }: {
   question: string;
   unit: string;
   value?: number;
   onChange: (v: number) => void;
+  error?: string | null;
 }) {
   return (
     <div className="space-y-8">
       <h1 className="font-heading text-3xl font-semibold">{question}</h1>
-      <div className="relative">
-        <input
-          type="number"
-          value={value || ''}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full bg-card border border-border rounded-lg px-5 py-4 text-lg font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors pr-16"
-          autoFocus
-        />
-        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground font-body">{unit}</span>
+      <div>
+        <div className="relative">
+          <input
+            type="number"
+            value={value || ''}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className={`w-full bg-card border rounded-lg px-5 py-4 text-lg font-body text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors pr-16 ${
+              error ? 'border-amber-400/60' : 'border-border focus:border-primary'
+            }`}
+            autoFocus
+          />
+          <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground font-body">{unit}</span>
+        </div>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-3 text-sm text-amber-400 font-body"
+          >
+            {error}
+          </motion.p>
+        )}
       </div>
     </div>
   );
