@@ -114,7 +114,9 @@ export interface WorkoutOption {
 export interface WorkoutPlan {
   message: string;
   dayLabel: string;
-  options: WorkoutOption[];
+  walk: WorkoutOption;           // mandatory daily walk
+  exerciseOptions: WorkoutOption[]; // 2 exercise choices to pick from
+  restOption: WorkoutOption;     // always available
   walkTarget: { km: number; note: string };
 }
 
