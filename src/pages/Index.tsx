@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import OnboardingFlow from '@/components/OnboardingFlow';
 import InsightScreen from '@/components/InsightScreen';
 import CheckInScreen from '@/components/CheckInScreen';
+import RoziVoiceCoach from '@/components/RoziVoiceCoach';
 import DayPlanScreen from '@/components/DayPlanScreen';
 import EveningReflection from '@/components/EveningReflection';
 import ProgressScreen from '@/components/ProgressScreen';
