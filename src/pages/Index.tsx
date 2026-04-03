@@ -137,6 +137,8 @@ export default function Index() {
   const canGoForward = !!getForwardScreen();
 
   switch (screen) {
+    case 'welcome':
+      return <WelcomeScreen onStart={() => goTo('onboarding')} />;
     case 'onboarding':
       return <OnboardingFlow onComplete={handleOnboardingComplete} />;
     case 'insight':
