@@ -97,7 +97,7 @@ export default function InsightScreen({ profile, onContinue, onBack, onForward }
           animate={{ opacity: 1 }}
           transition={{ delay: 1.0 }}
         >
-          {getDynamicCopy(profile.goal, tdee)}
+          {getDynamicCopy(profile.goals, tdee)}
         </motion.p>
 
         {/* Insight rows */}
