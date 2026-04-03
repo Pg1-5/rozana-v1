@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { Check, RefreshCw } from 'lucide-react';
 import ScreenNav from '@/components/ScreenNav';
 import CalendarNudges from '@/components/CalendarNudges';
 import {
   CheckInData,
   UserProfile,
   MealSlot,
-  
+  Recipe,
   getInsightLine,
   getWorkoutSuggestion,
   getRecipeSuggestions,
+  getRefreshedMealOption,
   calculateBMR,
   calculateTDEE,
   calculateTargetCalories,
@@ -33,7 +34,9 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
   const tdee = calculateTDEE(bmr, profile.activityLevel);
   const target = calculateTargetCalories(tdee, profile.goals);
   const usedRecipes = getUsedRecipes();
-  const mealSlots = getRecipeSuggestions(primaryGoal, checkIn.dietPreferences, target, checkIn.kitchenInput, usedRecipes);
+  const initialSlots = getRecipeSuggestions(primaryGoal, checkIn.dietPreferences, target, checkIn.kitchenInput, usedRecipes);
+
+  const [mealSlots, setMealSlots] = useState<MealSlot[]>(initialSlots);
 
   // Mark today's recipes as used
   useEffect(() => {
@@ -50,6 +53,32 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
   const selectMeal = (slotIndex: number, optionIndex: number) => {
     setSelections((prev) => ({ ...prev, [slotIndex]: optionIndex }));
   };
+
+  // Refresh a meal option: replace one option with a new one
+  const refreshMealOption = useCallback((slotIdx: number, optIdx: number) => {
+    const slot = mealSlots[slotIdx];
+    const excludeNames = slot.options.map(o => o.name);
+    const newRecipe = getRefreshedMealOption(
+      primaryGoal,
+      checkIn.dietPreferences,
+      target,
+      slotIdx,
+      excludeNames,
+      checkIn.kitchenInput,
+    );
+    if (!newRecipe) return;
+    setMealSlots(prev => {
+      const updated = [...prev];
+      const newOptions = [...updated[slotIdx].options] as [Recipe, Recipe, Recipe];
+      newOptions[optIdx] = newRecipe;
+      updated[slotIdx] = { ...updated[slotIdx], options: newOptions };
+      return updated;
+    });
+    // Clear selection for that slot if the replaced option was selected
+    if (selections[slotIdx] === optIdx) {
+      setSelections(prev => { const n = { ...prev }; delete n[slotIdx]; return n; });
+    }
+  }, [mealSlots, primaryGoal, checkIn, target, selections]);
 
   const dietLabel = checkIn.dietPreferences
     .map((p) => p === 'vegetarian' ? '🥦 Veg' : p === 'non_vegetarian' ? '🍗 Non-Veg' : '🥚 Egg')
@@ -251,74 +280,89 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
                 <div className="space-y-3">
                   {slot.options.map((recipe, optIdx) => {
                     const isSelected = selections[slotIdx] === optIdx;
+                    const isPrimary = optIdx === 0;
                     return (
-                      <button
-                        key={recipe.name}
-                        onClick={() => selectMeal(slotIdx, optIdx)}
-                        className="w-full text-left transition-all"
-                      >
-                        <div
-                          className={`p-5 rounded-lg transition-all ${
-                            isSelected
-                              ? 'ring-2 ring-primary bg-primary/5'
-                              : 'card-surface hover:bg-card-hover'
-                          }`}
+                      <div key={recipe.name + optIdx} className="relative">
+                        <button
+                          onClick={() => selectMeal(slotIdx, optIdx)}
+                          className="w-full text-left transition-all"
                         >
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                                  isSelected
-                                    ? 'border-primary bg-primary'
-                                    : 'border-muted-foreground/30'
-                                }`}
-                              >
-                                {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                          <div
+                            className={`p-5 rounded-lg transition-all ${
+                              isSelected
+                                ? 'ring-2 ring-primary bg-primary/5'
+                                : 'card-surface hover:bg-card-hover'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                                    isSelected
+                                      ? 'border-primary bg-primary'
+                                      : 'border-muted-foreground/30'
+                                  }`}
+                                >
+                                  {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                                </div>
+                                <h3 className="font-body font-medium text-foreground">{recipe.name}</h3>
+                                {isPrimary && (
+                                  <span className="text-[10px] font-body uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded">Best match</span>
+                                )}
                               </div>
-                              <h3 className="font-body font-medium text-foreground">{recipe.name}</h3>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <div className="flex gap-3 text-xs text-muted-foreground font-body">
+                                  <span>{recipe.kcal} kcal</span>
+                                  <span>{recipe.prepTime}</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex gap-3 text-xs text-muted-foreground font-body flex-shrink-0">
-                              <span>{recipe.kcal} kcal</span>
-                              <span>{recipe.prepTime}</span>
-                            </div>
-                          </div>
-                          {/* Macro breakdown */}
-                          {recipe.macros && (
-                            <div className="flex gap-3 ml-7 mt-1 mb-1">
-                              <span className="text-xs font-body text-muted-foreground">C: <span className="text-foreground">{recipe.macros.carbs}g</span></span>
-                              <span className="text-xs font-body text-muted-foreground">P: <span className="text-foreground">{recipe.macros.protein}g</span></span>
-                              <span className="text-xs font-body text-muted-foreground">F: <span className="text-foreground">{recipe.macros.fat}g</span></span>
-                              <span className="text-xs font-body text-muted-foreground">Fiber: <span className="text-foreground">{recipe.macros.fiber}g</span></span>
-                            </div>
-                          )}
-                          {/* Portion sizes per ingredient */}
-                          {recipe.portions && recipe.portions.length > 0 && (
-                            <div className="flex flex-wrap gap-x-3 gap-y-1 ml-7 mt-1 mb-1">
-                              {recipe.portions.map((p, pIdx) => (
-                                <span key={pIdx} className="text-xs font-body text-muted-foreground">
-                                  {p.item}: <span className="text-foreground font-medium">{p.grams}g</span>
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          {isSelected && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              <ol className="space-y-1.5 mb-3 ml-7">
-                                {recipe.steps.map((step, j) => (
-                                  <li key={j} className="text-sm font-body text-foreground/80 leading-relaxed">
-                                    {step}
-                                  </li>
+                            {/* Macro breakdown */}
+                            {recipe.macros && (
+                              <div className="flex gap-3 ml-7 mt-1 mb-1">
+                                <span className="text-xs font-body text-muted-foreground">C: <span className="text-foreground">{recipe.macros.carbs}g</span></span>
+                                <span className="text-xs font-body text-muted-foreground">P: <span className="text-foreground">{recipe.macros.protein}g</span></span>
+                                <span className="text-xs font-body text-muted-foreground">F: <span className="text-foreground">{recipe.macros.fat}g</span></span>
+                                <span className="text-xs font-body text-muted-foreground">Fiber: <span className="text-foreground">{recipe.macros.fiber}g</span></span>
+                              </div>
+                            )}
+                            {/* Portion sizes */}
+                            {recipe.portions && recipe.portions.length > 0 && (
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 ml-7 mt-1 mb-1">
+                                {recipe.portions.map((p, pIdx) => (
+                                  <span key={pIdx} className="text-xs font-body text-muted-foreground">
+                                    {p.item}: <span className="text-foreground font-medium">{p.grams}g</span>
+                                  </span>
                                 ))}
-                              </ol>
-                              <p className="text-xs text-muted-foreground font-body italic ml-7">{recipe.why}</p>
-                            </motion.div>
-                          )}
-                        </div>
-                      </button>
+                              </div>
+                            )}
+                            {isSelected && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                <ol className="space-y-1.5 mb-3 ml-7">
+                                  {recipe.steps.map((step, j) => (
+                                    <li key={j} className="text-sm font-body text-foreground/80 leading-relaxed">
+                                      {step}
+                                    </li>
+                                  ))}
+                                </ol>
+                                <p className="text-xs text-muted-foreground font-body italic ml-7">{recipe.why}</p>
+                              </motion.div>
+                            )}
+                          </div>
+                        </button>
+                        {/* Refresh button */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); refreshMealOption(slotIdx, optIdx); }}
+                          className="absolute top-3 right-3 p-1.5 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          title="Show another option"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
