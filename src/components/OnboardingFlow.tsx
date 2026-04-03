@@ -60,7 +60,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
       case 2: return !!profile.age && profile.age >= 13 && profile.age <= 80;
       case 3: return !!profile.weight && profile.weight >= 30 && profile.weight <= 200;
       case 4: return !!profile.height && profile.height >= 100 && profile.height <= 250;
-      case 5: return !!profile.goal;
+      case 5: return !!(profile.goals && profile.goals.length > 0);
       case 6: return !!profile.activityLevel;
       default: return false;
     }
