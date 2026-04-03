@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { CheckInData, DietPreference, getGreeting } from '@/lib/vitale-engine';
 import ScreenNav from '@/components/ScreenNav';
+import VoiceMicButton from '@/components/VoiceMicButton';
+import { useVoiceInput } from '@/hooks/use-voice-input';
+import { useToast } from '@/hooks/use-toast';
 
 interface Props {
   name: string;
@@ -35,12 +38,47 @@ const dietOptions: PillOption<DietPreference>[] = [
   { value: 'eggitarian', label: 'Eggitarian', emoji: '🥚' },
 ];
 
+// Map spoken words to option values
+function matchEnergy(text: string): 'low' | 'balanced' | 'high' | null {
+  const t = text.toLowerCase();
+  if (t.includes('low') || t.includes('tired') || t.includes('exhausted') || t.includes('no energy')) return 'low';
+  if (t.includes('high') || t.includes('great') || t.includes('energetic') || t.includes('full energy')) return 'high';
+  if (t.includes('balanced') || t.includes('okay') || t.includes('normal') || t.includes('fine') || t.includes('good')) return 'balanced';
+  return null;
+}
+
+function matchSleep(text: string): 'poor' | 'okay' | 'rested' | null {
+  const t = text.toLowerCase();
+  if (t.includes('poor') || t.includes('bad') || t.includes('terrible') || t.includes('not well') || t.includes('barely')) return 'poor';
+  if (t.includes('rested') || t.includes('great') || t.includes('well') || t.includes('amazing') || t.includes('good sleep')) return 'rested';
+  if (t.includes('okay') || t.includes('fine') || t.includes('ok') || t.includes('decent') || t.includes('average')) return 'okay';
+  return null;
+}
+
+function matchMind(text: string): 'heavy' | 'neutral' | 'clear' | null {
+  const t = text.toLowerCase();
+  if (t.includes('heavy') || t.includes('stressed') || t.includes('anxious') || t.includes('overwhelm') || t.includes('foggy')) return 'heavy';
+  if (t.includes('clear') || t.includes('fresh') || t.includes('sharp') || t.includes('focused')) return 'clear';
+  if (t.includes('neutral') || t.includes('okay') || t.includes('normal') || t.includes('fine')) return 'neutral';
+  return null;
+}
+
+function matchDiet(text: string): DietPreference[] {
+  const t = text.toLowerCase();
+  const results: DietPreference[] = [];
+  if (t.includes('veg') && !t.includes('non')) results.push('vegetarian');
+  if (t.includes('non-veg') || t.includes('non veg') || t.includes('nonveg') || t.includes('meat') || t.includes('chicken') || t.includes('fish')) results.push('non_vegetarian');
+  if (t.includes('egg')) results.push('eggitarian');
+  return results;
+}
+
 export default function CheckInScreen({ name, onComplete, onBack }: Props) {
   const [energy, setEnergy] = useState<CheckInData['energy'] | null>(null);
   const [sleep, setSleep] = useState<CheckInData['sleep'] | null>(null);
   const [mind, setMind] = useState<CheckInData['mind'] | null>(null);
   const [dietSelections, setDietSelections] = useState<DietPreference[]>([]);
   const [kitchenInput, setKitchenInput] = useState('');
+  const { toast } = useToast();
 
   const canProceed = energy && sleep && mind && dietSelections.length > 0;
 
@@ -49,6 +87,57 @@ export default function CheckInScreen({ name, onComplete, onBack }: Props) {
       prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
     );
   };
+
+  const showVoiceFeedback = useCallback((message: string, success: boolean) => {
+    toast({ description: message, duration: 2000 });
+  }, [toast]);
+
+  // Voice inputs for each field
+  const energyVoice = useVoiceInput({
+    onResult: (text) => {
+      const match = matchEnergy(text);
+      if (match) { setEnergy(match); showVoiceFeedback(`Energy: ${match}`, true); }
+      else showVoiceFeedback(`Heard "${text}" — say low, balanced, or high`, false);
+    },
+    onError: (e) => showVoiceFeedback(e, false),
+  });
+
+  const sleepVoice = useVoiceInput({
+    onResult: (text) => {
+      const match = matchSleep(text);
+      if (match) { setSleep(match); showVoiceFeedback(`Sleep: ${match}`, true); }
+      else showVoiceFeedback(`Heard "${text}" — say poor, okay, or rested`, false);
+    },
+    onError: (e) => showVoiceFeedback(e, false),
+  });
+
+  const mindVoice = useVoiceInput({
+    onResult: (text) => {
+      const match = matchMind(text);
+      if (match) { setMind(match); showVoiceFeedback(`Mind: ${match}`, true); }
+      else showVoiceFeedback(`Heard "${text}" — say heavy, neutral, or clear`, false);
+    },
+    onError: (e) => showVoiceFeedback(e, false),
+  });
+
+  const dietVoice = useVoiceInput({
+    onResult: (text) => {
+      const matches = matchDiet(text);
+      if (matches.length > 0) {
+        setDietSelections(matches);
+        showVoiceFeedback(`Diet: ${matches.join(', ')}`, true);
+      } else showVoiceFeedback(`Heard "${text}" — say vegetarian, non-veg, or eggitarian`, false);
+    },
+    onError: (e) => showVoiceFeedback(e, false),
+  });
+
+  const kitchenVoice = useVoiceInput({
+    onResult: (text) => {
+      setKitchenInput((prev) => prev ? `${prev}, ${text}` : text);
+      showVoiceFeedback(`Added: ${text}`, true);
+    },
+    onError: (e) => showVoiceFeedback(e, false),
+  });
 
   return (
     <div className="min-h-screen bg-background vitale-gradient px-6 py-12">
@@ -61,14 +150,17 @@ export default function CheckInScreen({ name, onComplete, onBack }: Props) {
         </motion.div>
 
         <motion.div className="space-y-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <PillSelector label="Energy" options={energyOptions} selected={energy} onSelect={(v) => setEnergy(v)} />
-          <PillSelector label="Sleep" options={sleepOptions} selected={sleep} onSelect={(v) => setSleep(v)} />
-          <PillSelector label="Mind" options={mindOptions} selected={mind} onSelect={(v) => setMind(v)} />
+          <PillSelectorWithVoice label="Energy" options={energyOptions} selected={energy} onSelect={(v) => setEnergy(v)} isListening={energyVoice.isListening} onVoiceToggle={energyVoice.toggle} />
+          <PillSelectorWithVoice label="Sleep" options={sleepOptions} selected={sleep} onSelect={(v) => setSleep(v)} isListening={sleepVoice.isListening} onVoiceToggle={sleepVoice.toggle} />
+          <PillSelectorWithVoice label="Mind" options={mindOptions} selected={mind} onSelect={(v) => setMind(v)} isListening={mindVoice.isListening} onVoiceToggle={mindVoice.toggle} />
         </motion.div>
 
         {/* Diet preference */}
         <motion.div className="mt-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-          <p className="text-sm text-muted-foreground font-body mb-3">What do you eat?</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm text-muted-foreground font-body">What do you eat?</p>
+            <VoiceMicButton isListening={dietVoice.isListening} onToggle={dietVoice.toggle} />
+          </div>
           <div className="flex gap-3">
             {dietOptions.map((opt) => {
               const isSelected = dietSelections.includes(opt.value);
@@ -95,9 +187,12 @@ export default function CheckInScreen({ name, onComplete, onBack }: Props) {
           )}
         </motion.div>
 
-        {/* Kitchen input — always visible */}
+        {/* Kitchen input */}
         <motion.div className="mt-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
-          <p className="text-sm text-muted-foreground font-body mb-3">What's available at home? <span className="text-xs opacity-60">(optional)</span></p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm text-muted-foreground font-body">What's available at home? <span className="text-xs opacity-60">(optional)</span></p>
+            <VoiceMicButton isListening={kitchenVoice.isListening} onToggle={kitchenVoice.toggle} />
+          </div>
           <textarea
             className="w-full bg-card border border-border rounded-lg px-4 py-3 text-sm font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors resize-none"
             placeholder="e.g. paneer, eggs, cucumber, brown bread, rice, dal, chicken..."
@@ -131,20 +226,27 @@ export default function CheckInScreen({ name, onComplete, onBack }: Props) {
   );
 }
 
-function PillSelector<T extends string>({
+function PillSelectorWithVoice<T extends string>({
   label,
   options,
   selected,
   onSelect,
+  isListening,
+  onVoiceToggle,
 }: {
   label: string;
   options: PillOption<T>[];
   selected: T | null;
   onSelect: (v: T) => void;
+  isListening: boolean;
+  onVoiceToggle: () => void;
 }) {
   return (
     <div>
-      <p className="text-sm text-muted-foreground font-body mb-3">{label}</p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm text-muted-foreground font-body">{label}</p>
+        <VoiceMicButton isListening={isListening} onToggle={onVoiceToggle} />
+      </div>
       <div className="flex gap-3">
         {options.map((opt) => (
           <button

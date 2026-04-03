@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import OnboardingFlow from '@/components/OnboardingFlow';
 import InsightScreen from '@/components/InsightScreen';
 import CheckInScreen from '@/components/CheckInScreen';
+import RoziVoiceCoach from '@/components/RoziVoiceCoach';
 import DayPlanScreen from '@/components/DayPlanScreen';
 import EveningReflection from '@/components/EveningReflection';
 import ProgressScreen from '@/components/ProgressScreen';
@@ -140,7 +141,12 @@ export default function Index() {
     case 'insight':
       return <InsightScreen profile={profile!} onContinue={() => goTo('checkin')} onBack={canGoBack ? goBack : undefined} onForward={canGoForward ? goForward : undefined} />;
     case 'checkin':
-      return <CheckInScreen name={profile!.name} onComplete={handleCheckInComplete} onBack={canGoBack ? goBack : undefined} />;
+      return (
+        <>
+          <CheckInScreen name={profile!.name} onComplete={handleCheckInComplete} onBack={canGoBack ? goBack : undefined} />
+          <RoziVoiceCoach userName={profile!.name} onCheckInComplete={handleCheckInComplete} />
+        </>
+      );
     case 'dayplan':
       return <DayPlanScreen profile={profile!} checkIn={checkIn!} onReflect={() => goTo('reflection')} onBack={canGoBack ? goBack : undefined} onForward={canGoForward ? goForward : undefined} />;
     case 'reflection':
