@@ -41,7 +41,7 @@ const SHARE_MESSAGES: Record<string, string[]> = {
 };
 
 export default function Index() {
-  const [screen, setScreen] = useState<Screen>('onboarding');
+  const [screen, setScreen] = useState<Screen>('welcome');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [checkIn, setCheckIn] = useState<CheckInData | null>(null);
   const [history, setHistory] = useState<Screen[]>([]);
