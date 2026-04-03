@@ -46,32 +46,30 @@ export function calculateTDEE(bmr: number, activityLevel: string): number {
   return Math.round(bmr * multiplier);
 }
 
+// Priority order: fat_loss > lose_weight > build_muscle > stay_fit > build_consistency
+const GOAL_PRIORITY: string[] = ['fat_loss', 'lose_weight', 'build_muscle', 'stay_fit', 'build_consistency'];
+
 const GOAL_ADJUSTMENTS: Record<string, number> = {
-  lose_weight: -500,
+  lose_weight: -300,
   fat_loss: -300,
   stay_fit: 0,
   build_consistency: 0,
-  build_muscle: 300,
+  build_muscle: 200,
 };
+
+// Get the highest-priority goal from a multi-select list
+function getTopPriorityGoal(goals: string[]): string {
+  for (const g of GOAL_PRIORITY) {
+    if (goals.includes(g)) return g;
+  }
+  return goals[0] || 'stay_fit';
+}
 
 export function calculateTargetCalories(tdee: number, goals: string[]): number {
   if (!goals.length) return tdee;
-  const totalAdj = goals.reduce((sum, g) => sum + (GOAL_ADJUSTMENTS[g] ?? 0), 0);
-  let avgAdj = Math.round(totalAdj / goals.length);
-
-  const hasDeficit = goals.some(g => g === 'lose_weight' || g === 'fat_loss');
-  const hasSurplus = goals.includes('build_muscle');
-
-  // Enforce minimum deficit of 300 if any weight/fat loss goal is present
-  if (hasDeficit && avgAdj > -300) {
-    avgAdj = -300;
-  }
-  // Enforce minimum surplus of 200 if muscle gain goal is present
-  if (hasSurplus && !hasDeficit && avgAdj < 200) {
-    avgAdj = 200;
-  }
-
-  return tdee + avgAdj;
+  const top = getTopPriorityGoal(goals);
+  const adj = GOAL_ADJUSTMENTS[top] ?? 0;
+  return tdee + adj;
 }
 
 export function calculateBMI(weight: number, heightCm: number): { value: number; label: string } {
@@ -90,25 +88,21 @@ export function getActivityMultiplier(level: string): number {
 
 export function getGoalAdjustmentLabel(goals: string[]): string {
   if (!goals.length) return 'No adjustment';
-  const totalAdj = goals.reduce((sum, g) => sum + (GOAL_ADJUSTMENTS[g] ?? 0), 0);
-  let avgAdj = Math.round(totalAdj / goals.length);
-  const hasDeficit = goals.some(g => g === 'lose_weight' || g === 'fat_loss');
-  const hasSurplus = goals.includes('build_muscle');
-  if (hasDeficit && avgAdj > -300) avgAdj = -300;
-  if (hasSurplus && !hasDeficit && avgAdj < 200) avgAdj = 200;
-  if (avgAdj < 0) return `${avgAdj} kcal deficit`;
-  if (avgAdj > 0) return `+${avgAdj} kcal surplus`;
+  const top = getTopPriorityGoal(goals);
+  const adj = GOAL_ADJUSTMENTS[top] ?? 0;
+  if (adj < 0) return `${adj} kcal deficit`;
+  if (adj > 0) return `+${adj} kcal surplus`;
   return 'No adjustment';
 }
 
 export function getDynamicCopy(goals: string[], tdee: number): string {
-  const primary = getPrimaryGoal(goals);
+  const primary = getTopPriorityGoal(goals);
   switch (primary) {
-    case 'lose_weight': return `To stay on track, your body needs around ${tdee} kcal/day. We'll guide you slightly below this to support steady weight loss.`;
-    case 'fat_loss': return `Your maintenance is ${tdee} kcal/day. A moderate deficit helps burn fat while keeping your muscle intact.`;
+    case 'lose_weight': return `To stay on track, your body needs around ${tdee} kcal/day. A 300 kcal deficit helps you lose weight safely and sustainably.`;
+    case 'fat_loss': return `Your maintenance is ${tdee} kcal/day. A moderate 300 kcal deficit helps burn fat while keeping your muscle intact.`;
     case 'stay_fit': return `Your body runs well at around ${tdee} kcal/day. We'll help you stay right there.`;
     case 'build_consistency': return `Numbers matter less right now. Your baseline is ${tdee} kcal/day — we'll keep things simple and sustainable.`;
-    case 'build_muscle': return `To grow, your body needs a little more. We'll work slightly above your ${tdee} kcal/day baseline.`;
+    case 'build_muscle': return `To grow, your body needs a little more. We'll add 200 kcal above your ${tdee} kcal/day baseline.`;
     default: return '';
   }
 }
@@ -116,11 +110,11 @@ export function getDynamicCopy(goals: string[], tdee: number): string {
 export function getGoalTip(goals: string[]): string {
   return goals.map(g => {
     switch (g) {
-      case 'lose_weight': return 'A 500 cal/day deficit creates roughly 0.5kg loss per week. Focus on protein-rich, filling foods.';
-      case 'fat_loss': return 'A 300 cal deficit preserves muscle while burning fat. Add strength training 3x/week.';
+      case 'lose_weight': return 'A 300 kcal/day deficit supports steady, sustainable weight loss without muscle loss.';
+      case 'fat_loss': return 'A 300 kcal deficit preserves muscle while burning fat. Add strength training 3x/week.';
       case 'stay_fit': return 'Eat at your maintenance calories. Prioritise food quality, sleep, and daily movement.';
       case 'build_consistency': return 'Calories matter less than showing up. Move your body daily and track without obsessing.';
-      case 'build_muscle': return 'A 300 cal surplus supports lean muscle growth. Prioritise progressive overload.';
+      case 'build_muscle': return 'A 200 kcal surplus supports lean muscle growth. Prioritise progressive overload and protein.';
       default: return '';
     }
   }).filter(Boolean).join(' • ');
@@ -725,10 +719,11 @@ export function getRecipeSuggestions(goal: string, dietPreferences: DietPreferen
 
 export const GOAL_OPTIONS = [
   { id: 'lose_weight', emoji: '🎯', title: 'Weight loss', description: 'Reduce overall body weight gradually' },
+  { id: 'lose_weight', emoji: '🎯', title: 'Weight loss', description: 'Reduce overall body weight' },
   { id: 'fat_loss', emoji: '🔥', title: 'Fat loss', description: 'Burn fat while preserving muscle' },
-  { id: 'stay_fit', emoji: '✨', title: 'Stay fit', description: 'Keep current weight, improve energy' },
-  { id: 'build_consistency', emoji: '🧱', title: 'Build consistency', description: 'Start small, stay consistent' },
-  { id: 'build_muscle', emoji: '💪', title: 'Build muscle', description: 'Increase lean mass and strength' },
+  { id: 'stay_fit', emoji: '✨', title: 'Stay fit', description: 'Maintain weight and improve energy' },
+  { id: 'build_consistency', emoji: '🧱', title: 'Build consistency', description: 'Focus on habits' },
+  { id: 'build_muscle', emoji: '💪', title: 'Build muscle', description: 'Increase lean mass' },
 ];
 
 export const ACTIVITY_OPTIONS = [
