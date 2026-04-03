@@ -20,7 +20,14 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
   const next = () => setStep((s) => s + 1);
   const back = () => setStep((s) => Math.max(0, s - 1));
-  const update = (field: string, value: string | number) => setProfile((p) => ({ ...p, [field]: value }));
+  const update = (field: string, value: string | number | string[]) => setProfile((p) => ({ ...p, [field]: value }));
+  const toggleGoal = (goalId: string) => {
+    setProfile((p) => {
+      const current = p.goals || [];
+      const next = current.includes(goalId) ? current.filter(g => g !== goalId) : [...current, goalId];
+      return { ...p, goals: next };
+    });
+  };
 
   const getValidationError = (): string | null => {
     if (step === 2 && profile.age !== undefined) {
