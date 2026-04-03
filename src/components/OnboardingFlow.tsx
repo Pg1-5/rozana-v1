@@ -255,24 +255,38 @@ export default function OnboardingFlow({ onComplete }: Props) {
   );
 }
 
-function NumberInput({ question, unit, value, onChange }: {
+function NumberInput({ question, unit, value, onChange, error }: {
   question: string;
   unit: string;
   value?: number;
   onChange: (v: number) => void;
+  error?: string | null;
 }) {
   return (
     <div className="space-y-8">
       <h1 className="font-heading text-3xl font-semibold">{question}</h1>
-      <div className="relative">
-        <input
-          type="number"
-          value={value || ''}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full bg-card border border-border rounded-lg px-5 py-4 text-lg font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors pr-16"
-          autoFocus
-        />
-        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground font-body">{unit}</span>
+      <div>
+        <div className="relative">
+          <input
+            type="number"
+            value={value || ''}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className={`w-full bg-card border rounded-lg px-5 py-4 text-lg font-body text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors pr-16 ${
+              error ? 'border-amber-400/60' : 'border-border focus:border-primary'
+            }`}
+            autoFocus
+          />
+          <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground font-body">{unit}</span>
+        </div>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-3 text-sm text-amber-400 font-body"
+          >
+            {error}
+          </motion.p>
+        )}
       </div>
     </div>
   );
