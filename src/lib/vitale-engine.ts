@@ -658,11 +658,10 @@ function scoreRecipe(recipe: Recipe, ingredients: string[]): number {
   return matchCount * 3 + coverageBonus;
 }
 
-function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[], mealType?: string, usedRecipes?: string[]): [Recipe, Recipe] {
-  // Filter out recently used recipes if possible
+function pickBestThree(pool: Recipe[], targetKcal: number, ingredients: string[], mealType?: string, usedRecipes?: string[]): [Recipe, Recipe, Recipe] {
   const used = new Set(usedRecipes || []);
   const fresh = pool.filter(r => !used.has(r.name));
-  const candidates = fresh.length >= 2 ? fresh : pool;
+  const candidates = fresh.length >= 3 ? fresh : pool;
 
   const scored = candidates.map((r) => ({
     recipe: r,
@@ -673,12 +672,61 @@ function pickBestTwo(pool: Recipe[], targetKcal: number, ingredients: string[], 
     if (b.ingScore !== a.ingScore) return b.ingScore - a.ingScore;
     return a.kcalDiff - b.kcalDiff;
   });
-  const first = scored[0];
-  const second = scored.find((s) => s.recipe.name !== first.recipe.name) || scored[1];
+
   const macros = estimateMacros(targetKcal, mealType);
-  const r1 = { ...first.recipe, kcal: targetKcal, macros, portions: estimatePortions(first.recipe, targetKcal) };
-  const r2 = { ...second.recipe, kcal: targetKcal, macros, portions: estimatePortions(second.recipe, targetKcal) };
-  return [r1, r2];
+  const picked: Recipe[] = [];
+  const usedNames = new Set<string>();
+  for (const s of scored) {
+    if (!usedNames.has(s.recipe.name)) {
+      usedNames.add(s.recipe.name);
+      picked.push({ ...s.recipe, kcal: targetKcal, macros, portions: estimatePortions(s.recipe, targetKcal) });
+    }
+    if (picked.length === 3) break;
+  }
+  // Fallback: if pool is too small, duplicate last
+  while (picked.length < 3) {
+    picked.push({ ...picked[picked.length - 1] });
+  }
+  return picked as [Recipe, Recipe, Recipe];
+}
+
+// Get a refreshed option for a specific meal slot (different from currently shown)
+export function getRefreshedMealOption(
+  goal: string,
+  dietPreferences: DietPreference[] | undefined,
+  targetCalories: number,
+  mealIndex: number,
+  excludeNames: string[],
+  kitchenInput?: string,
+): Recipe | null {
+  const splits = CALORIE_SPLITS[goal] || CALORIE_SPLITS.stay_fit;
+  const ingredients = kitchenInput ? parseIngredients(kitchenInput) : [];
+  const safeDietPrefs = Array.isArray(dietPreferences) ? dietPreferences : [];
+  const prefs = safeDietPrefs.length > 0 ? safeDietPrefs : ['vegetarian' as DietPreference];
+  const mealTypes: MealType[] = ['breakfast', 'lunch', 'snacks', 'dinner'];
+  const mealType = mealTypes[mealIndex];
+  const targetKcal = Math.round(targetCalories * splits[mealIndex]);
+
+  const seen = new Set<string>();
+  const pool: Recipe[] = [];
+  for (const pref of prefs) {
+    for (const r of (MEAL_RECIPES[mealType][pref] || [])) {
+      if (!seen.has(r.name)) { seen.add(r.name); pool.push(r); }
+    }
+  }
+  const excludeSet = new Set(excludeNames);
+  const available = pool.filter(r => !excludeSet.has(r.name));
+  if (available.length === 0) return null;
+
+  const scored = available.map(r => ({
+    recipe: r,
+    ingScore: scoreRecipe(r, ingredients),
+    kcalDiff: Math.abs(r.kcal - targetKcal),
+  }));
+  scored.sort((a, b) => b.ingScore !== a.ingScore ? b.ingScore - a.ingScore : a.kcalDiff - b.kcalDiff);
+  const macros = estimateMacros(targetKcal, mealType);
+  const best = scored[0].recipe;
+  return { ...best, kcal: targetKcal, macros, portions: estimatePortions(best, targetKcal) };
 }
 
 export function getRecipeSuggestions(goal: string, dietPreferences: DietPreference[] | undefined, targetCalories: number, kitchenInput?: string, usedRecipes?: string[]): MealSlot[] {
