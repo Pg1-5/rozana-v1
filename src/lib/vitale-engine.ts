@@ -46,32 +46,30 @@ export function calculateTDEE(bmr: number, activityLevel: string): number {
   return Math.round(bmr * multiplier);
 }
 
+// Priority order: fat_loss > lose_weight > build_muscle > stay_fit > build_consistency
+const GOAL_PRIORITY: string[] = ['fat_loss', 'lose_weight', 'build_muscle', 'stay_fit', 'build_consistency'];
+
 const GOAL_ADJUSTMENTS: Record<string, number> = {
-  lose_weight: -500,
+  lose_weight: -300,
   fat_loss: -300,
   stay_fit: 0,
   build_consistency: 0,
-  build_muscle: 300,
+  build_muscle: 200,
 };
+
+// Get the highest-priority goal from a multi-select list
+function getTopPriorityGoal(goals: string[]): string {
+  for (const g of GOAL_PRIORITY) {
+    if (goals.includes(g)) return g;
+  }
+  return goals[0] || 'stay_fit';
+}
 
 export function calculateTargetCalories(tdee: number, goals: string[]): number {
   if (!goals.length) return tdee;
-  const totalAdj = goals.reduce((sum, g) => sum + (GOAL_ADJUSTMENTS[g] ?? 0), 0);
-  let avgAdj = Math.round(totalAdj / goals.length);
-
-  const hasDeficit = goals.some(g => g === 'lose_weight' || g === 'fat_loss');
-  const hasSurplus = goals.includes('build_muscle');
-
-  // Enforce minimum deficit of 300 if any weight/fat loss goal is present
-  if (hasDeficit && avgAdj > -300) {
-    avgAdj = -300;
-  }
-  // Enforce minimum surplus of 200 if muscle gain goal is present
-  if (hasSurplus && !hasDeficit && avgAdj < 200) {
-    avgAdj = 200;
-  }
-
-  return tdee + avgAdj;
+  const top = getTopPriorityGoal(goals);
+  const adj = GOAL_ADJUSTMENTS[top] ?? 0;
+  return tdee + adj;
 }
 
 export function calculateBMI(weight: number, heightCm: number): { value: number; label: string } {
