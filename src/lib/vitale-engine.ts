@@ -519,7 +519,7 @@ export interface MealSlot {
   label: string;
   emoji: string;
   targetKcal: number;
-  options: [Recipe, Recipe];
+  options: [Recipe, Recipe, Recipe];
 }
 
 // Calorie distribution by goal (% of target: breakfast, lunch, snacks, dinner)
