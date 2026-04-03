@@ -75,15 +75,13 @@ export function getActivityMultiplier(level: string): number {
   return ACTIVITY_MULTIPLIERS[level] || 1.2;
 }
 
-export function getGoalAdjustmentLabel(goal: string): string {
-  switch (goal) {
-    case 'lose_weight': return '−500 kcal deficit';
-    case 'fat_loss': return '−300 kcal deficit';
-    case 'stay_fit': return 'No adjustment';
-    case 'build_consistency': return 'No adjustment';
-    case 'build_muscle': return '+300 kcal surplus';
-    default: return 'No adjustment';
-  }
+export function getGoalAdjustmentLabel(goals: string[]): string {
+  if (!goals.length) return 'No adjustment';
+  const totalAdj = goals.reduce((sum, g) => sum + (GOAL_ADJUSTMENTS[g] ?? 0), 0);
+  const avgAdj = Math.round(totalAdj / goals.length);
+  if (avgAdj < 0) return `${avgAdj} kcal deficit`;
+  if (avgAdj > 0) return `+${avgAdj} kcal surplus`;
+  return 'No adjustment';
 }
 
 export function getDynamicCopy(goal: string, tdee: number): string {
