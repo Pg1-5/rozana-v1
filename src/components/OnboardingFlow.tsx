@@ -179,30 +179,38 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
             {step === 5 && (
               <div className="space-y-6">
-                <h1 className="font-heading text-3xl font-semibold">What's your health goal?</h1>
+                <div>
+                  <h1 className="font-heading text-3xl font-semibold">What are your health goals?</h1>
+                  <p className="text-muted-foreground font-body mt-2">Select all that apply</p>
+                </div>
                 <div className="space-y-3">
-                  {GOAL_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.id}
-                      onClick={() => update('goal', opt.id)}
-                      className={`w-full p-4 rounded-lg text-left transition-all ${
-                        profile.goal === opt.id ? 'card-surface-selected' : 'card-surface hover:bg-card-hover'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xl">{opt.emoji}</span>
-                          <div>
-                            <p className="font-body font-medium">{opt.title}</p>
-                            <p className="text-sm text-muted-foreground">{opt.description}</p>
+                  {GOAL_OPTIONS.map((opt) => {
+                    const selected = (profile.goals || []).includes(opt.id);
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => toggleGoal(opt.id)}
+                        className={`w-full p-4 rounded-lg text-left transition-all ${
+                          selected ? 'card-surface-selected' : 'card-surface hover:bg-card-hover'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">{opt.emoji}</span>
+                            <div>
+                              <p className="font-body font-medium">{opt.title}</p>
+                              <p className="text-sm text-muted-foreground">{opt.description}</p>
+                            </div>
+                          </div>
+                          <div className={`w-5 h-5 rounded-md border-2 transition-colors flex-shrink-0 flex items-center justify-center ${
+                            selected ? 'border-primary bg-primary' : 'border-muted-foreground'
+                          }`}>
+                            {selected && <span className="text-xs text-primary-foreground">✓</span>}
                           </div>
                         </div>
-                        <div className={`w-5 h-5 rounded-full border-2 transition-colors flex-shrink-0 ${
-                          profile.goal === opt.id ? 'border-primary bg-primary' : 'border-muted-foreground'
-                        }`} />
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
