@@ -46,15 +46,19 @@ export function calculateTDEE(bmr: number, activityLevel: string): number {
   return Math.round(bmr * multiplier);
 }
 
-export function calculateTargetCalories(tdee: number, goal: string): number {
-  switch (goal) {
-    case 'lose_weight': return tdee - 500;
-    case 'fat_loss': return tdee - 300;
-    case 'stay_fit': return tdee;
-    case 'build_consistency': return tdee;
-    case 'build_muscle': return tdee + 300;
-    default: return tdee;
-  }
+const GOAL_ADJUSTMENTS: Record<string, number> = {
+  lose_weight: -500,
+  fat_loss: -300,
+  stay_fit: 0,
+  build_consistency: 0,
+  build_muscle: 300,
+};
+
+export function calculateTargetCalories(tdee: number, goals: string[]): number {
+  if (!goals.length) return tdee;
+  const totalAdj = goals.reduce((sum, g) => sum + (GOAL_ADJUSTMENTS[g] ?? 0), 0);
+  const avgAdj = Math.round(totalAdj / goals.length);
+  return tdee + avgAdj;
 }
 
 export function calculateBMI(weight: number, heightCm: number): { value: number; label: string } {
