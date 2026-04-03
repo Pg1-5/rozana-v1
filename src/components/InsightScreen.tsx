@@ -22,7 +22,7 @@ interface Props {
 export default function InsightScreen({ profile, onContinue, onBack, onForward }: Props) {
   const bmr = calculateBMR(profile);
   const tdee = calculateTDEE(bmr, profile.activityLevel);
-  const target = calculateTargetCalories(tdee, profile.goal);
+  const target = calculateTargetCalories(tdee, profile.goals);
   const bmi = calculateBMI(profile.weight, profile.height);
   const multiplier = getActivityMultiplier(profile.activityLevel);
 
