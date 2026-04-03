@@ -1,0 +1,218 @@
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mic, MicOff, X, MessageCircle } from 'lucide-react';
+import { useVoiceInput } from '@/hooks/use-voice-input';
+import { CheckInData, DietPreference } from '@/lib/vitale-engine';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Props {
+  userName: string;
+  onCheckInComplete: (data: CheckInData) => void;
+}
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+function speak(text: string) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-IN';
+    utterance.rate = 0.95;
+    utterance.pitch = 1.1;
+    // Try to find a female Indian English voice
+    const voices = window.speechSynthesis.getVoices();
+    const indianVoice = voices.find(v => v.lang.includes('en-IN') || v.lang.includes('en_IN'));
+    if (indianVoice) utterance.voice = indianVoice;
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
+function parseCheckInData(text: string): CheckInData | null {
+  const match = text.match(/\[CHECKIN_DATA\](.*?)\[\/CHECKIN_DATA\]/s);
+  if (!match) return null;
+  try {
+    const data = JSON.parse(match[1]);
+    if (data.energy && data.sleep && data.mind && data.diet?.length > 0) {
+      return {
+        energy: data.energy,
+        sleep: data.sleep,
+        mind: data.mind,
+        dietPreferences: data.diet as DietPreference[],
+        kitchenInput: data.kitchen || undefined,
+      };
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function cleanDisplayText(text: string): string {
+  return text.replace(/\[CHECKIN_DATA\].*?\[\/CHECKIN_DATA\]/s, '').trim();
+}
+
+export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isThinking, setIsThinking] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const sendToRozi = useCallback(async (userText: string) => {
+    const userMsg: Message = { role: 'user', content: userText };
+    const updated = [...messages, userMsg];
+    setMessages(updated);
+    setIsThinking(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('rozi-chat', {
+        body: { messages: updated },
+      });
+
+      if (error) throw error;
+
+      const reply = data?.reply || "Sorry, I couldn't process that. Try again?";
+      const assistantMsg: Message = { role: 'assistant', content: reply };
+      setMessages(prev => [...prev, assistantMsg]);
+
+      // Speak the clean text
+      const displayText = cleanDisplayText(reply);
+      if (displayText) {
+        setIsSpeaking(true);
+        speak(displayText);
+        setTimeout(() => setIsSpeaking(false), displayText.length * 60);
+      }
+
+      // Check for completed check-in data
+      const checkInData = parseCheckInData(reply);
+      if (checkInData) {
+        setTimeout(() => {
+          onCheckInComplete(checkInData);
+        }, 2000);
+      }
+    } catch (e) {
+      console.error('Rozi chat error:', e);
+      setMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Let's try again — how are you feeling?" }]);
+    } finally {
+      setIsThinking(false);
+    }
+  }, [messages, onCheckInComplete]);
+
+  const voiceInput = useVoiceInput({
+    onResult: (text) => {
+      sendToRozi(text);
+    },
+    onError: (e) => {
+      console.error('Voice error:', e);
+    },
+  });
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  }, [messages, isThinking]);
+
+  // Start conversation when opened
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      const greeting = `Hi ${userName}! I'm Rozi, your health coach. Tell me, how's your energy today — low, balanced, or high?`;
+      setMessages([{ role: 'assistant', content: greeting }]);
+      speak(greeting);
+    }
+  }, [isOpen, userName]);
+
+  if (!isOpen) {
+    return (
+      <motion.button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:opacity-90 transition-opacity"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        title="Talk to Rozi"
+      >
+        <MessageCircle size={24} />
+      </motion.button>
+    );
+  }
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col"
+        initial={{ opacity: 0, y: '100%' }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: '100%' }}
+        transition={{ type: 'spring', damping: 25 }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div>
+            <h2 className="font-heading text-lg font-semibold text-foreground">🎙️ Rozi</h2>
+            <p className="text-xs text-muted-foreground font-body">Your AI health coach</p>
+          </div>
+          <button
+            onClick={() => {
+              window.speechSynthesis?.cancel();
+              setIsOpen(false);
+            }}
+            className="w-8 h-8 rounded-full card-surface flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          {messages.map((msg, i) => (
+            <motion.div
+              key={i}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div
+                className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm font-body ${
+                  msg.role === 'user'
+                    ? 'bg-primary text-primary-foreground rounded-br-sm'
+                    : 'card-surface text-foreground rounded-bl-sm'
+                }`}
+              >
+                {msg.role === 'assistant' ? cleanDisplayText(msg.content) : msg.content}
+              </div>
+            </motion.div>
+          ))}
+          {isThinking && (
+            <motion.div className="flex justify-start" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="card-surface rounded-2xl rounded-bl-sm px-4 py-3 text-sm font-body text-muted-foreground">
+                Rozi is thinking...
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Mic controls */}
+        <div className="px-6 py-6 border-t border-border flex flex-col items-center gap-3">
+          <p className="text-xs text-muted-foreground font-body">
+            {voiceInput.isListening ? '🔴 Listening...' : isSpeaking ? '🗣️ Rozi is speaking...' : 'Tap the mic to speak'}
+          </p>
+          <motion.button
+            onClick={voiceInput.toggle}
+            disabled={isThinking}
+            className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
+              voiceInput.isListening
+                ? 'bg-primary text-primary-foreground'
+                : 'card-surface text-foreground hover:bg-card-hover'
+            } disabled:opacity-30`}
+            animate={voiceInput.isListening ? { scale: [1, 1.1, 1] } : {}}
+            transition={voiceInput.isListening ? { repeat: Infinity, duration: 1 } : {}}
+          >
+            {voiceInput.isListening ? <MicOff size={28} /> : <Mic size={28} />}
+          </motion.button>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
