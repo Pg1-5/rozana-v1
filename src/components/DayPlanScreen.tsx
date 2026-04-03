@@ -91,6 +91,7 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
         >
           <h2 className="text-xs text-muted-foreground font-body uppercase tracking-widest mb-1">Move</h2>
           <p className="font-heading text-base font-semibold text-foreground mb-1">{workout.dayLabel}</p>
+          {/* Walk is mandatory and always shown alongside */}
           <p className="text-sm font-body text-foreground/80 mb-4">{workout.message}</p>
 
           <div className="space-y-3 mb-4">
