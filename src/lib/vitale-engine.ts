@@ -5,8 +5,13 @@ export interface UserProfile {
   age: number;
   weight: number;
   height: number;
-  goal: string;
+  goals: string[];
   activityLevel: string;
+}
+
+// Helper: get primary goal (first selected) for single-goal functions
+export function getPrimaryGoal(goals: string[]): string {
+  return goals[0] || 'stay_fit';
 }
 
 export type DietPreference = 'vegetarian' | 'non_vegetarian' | 'eggitarian';
@@ -41,15 +46,19 @@ export function calculateTDEE(bmr: number, activityLevel: string): number {
   return Math.round(bmr * multiplier);
 }
 
-export function calculateTargetCalories(tdee: number, goal: string): number {
-  switch (goal) {
-    case 'lose_weight': return tdee - 500;
-    case 'fat_loss': return tdee - 300;
-    case 'stay_fit': return tdee;
-    case 'build_consistency': return tdee;
-    case 'build_muscle': return tdee + 300;
-    default: return tdee;
-  }
+const GOAL_ADJUSTMENTS: Record<string, number> = {
+  lose_weight: -500,
+  fat_loss: -300,
+  stay_fit: 0,
+  build_consistency: 0,
+  build_muscle: 300,
+};
+
+export function calculateTargetCalories(tdee: number, goals: string[]): number {
+  if (!goals.length) return tdee;
+  const totalAdj = goals.reduce((sum, g) => sum + (GOAL_ADJUSTMENTS[g] ?? 0), 0);
+  const avgAdj = Math.round(totalAdj / goals.length);
+  return tdee + avgAdj;
 }
 
 export function calculateBMI(weight: number, heightCm: number): { value: number; label: string } {
@@ -66,19 +75,18 @@ export function getActivityMultiplier(level: string): number {
   return ACTIVITY_MULTIPLIERS[level] || 1.2;
 }
 
-export function getGoalAdjustmentLabel(goal: string): string {
-  switch (goal) {
-    case 'lose_weight': return '−500 kcal deficit';
-    case 'fat_loss': return '−300 kcal deficit';
-    case 'stay_fit': return 'No adjustment';
-    case 'build_consistency': return 'No adjustment';
-    case 'build_muscle': return '+300 kcal surplus';
-    default: return 'No adjustment';
-  }
+export function getGoalAdjustmentLabel(goals: string[]): string {
+  if (!goals.length) return 'No adjustment';
+  const totalAdj = goals.reduce((sum, g) => sum + (GOAL_ADJUSTMENTS[g] ?? 0), 0);
+  const avgAdj = Math.round(totalAdj / goals.length);
+  if (avgAdj < 0) return `${avgAdj} kcal deficit`;
+  if (avgAdj > 0) return `+${avgAdj} kcal surplus`;
+  return 'No adjustment';
 }
 
-export function getDynamicCopy(goal: string, tdee: number): string {
-  switch (goal) {
+export function getDynamicCopy(goals: string[], tdee: number): string {
+  const primary = getPrimaryGoal(goals);
+  switch (primary) {
     case 'lose_weight': return `To stay on track, your body needs around ${tdee} kcal/day. We'll guide you slightly below this to support steady weight loss.`;
     case 'fat_loss': return `Your maintenance is ${tdee} kcal/day. A moderate deficit helps burn fat while keeping your muscle intact.`;
     case 'stay_fit': return `Your body runs well at around ${tdee} kcal/day. We'll help you stay right there.`;
@@ -88,15 +96,17 @@ export function getDynamicCopy(goal: string, tdee: number): string {
   }
 }
 
-export function getGoalTip(goal: string): string {
-  switch (goal) {
-    case 'lose_weight': return 'A 500 cal/day deficit creates roughly 0.5kg loss per week. Focus on protein-rich, filling foods. Never go below your BMR.';
-    case 'fat_loss': return 'A 300 cal deficit preserves muscle while burning fat. Add strength training 3x/week and aim for 1.6-2g protein per kg bodyweight.';
-    case 'stay_fit': return 'Eat at your maintenance calories. Prioritise food quality, sleep, and daily movement. Your body will naturally improve over time.';
-    case 'build_consistency': return 'Calories matter less than showing up. Move your body daily, eat close to your baseline, and track without obsessing.';
-    case 'build_muscle': return 'A 300 cal surplus supports lean muscle growth. Prioritise progressive overload and 1.8-2.2g protein per kg bodyweight.';
-    default: return '';
-  }
+export function getGoalTip(goals: string[]): string {
+  return goals.map(g => {
+    switch (g) {
+      case 'lose_weight': return 'A 500 cal/day deficit creates roughly 0.5kg loss per week. Focus on protein-rich, filling foods.';
+      case 'fat_loss': return 'A 300 cal deficit preserves muscle while burning fat. Add strength training 3x/week.';
+      case 'stay_fit': return 'Eat at your maintenance calories. Prioritise food quality, sleep, and daily movement.';
+      case 'build_consistency': return 'Calories matter less than showing up. Move your body daily and track without obsessing.';
+      case 'build_muscle': return 'A 300 cal surplus supports lean muscle growth. Prioritise progressive overload.';
+      default: return '';
+    }
+  }).filter(Boolean).join(' • ');
 }
 
 // Workout types

@@ -61,7 +61,7 @@ export default function ProgressScreen({ onCheckIn, onReset, onBack, onCommunity
   if (profile) {
     const bmr = calculateBMR(profile);
     const tdee = calculateTDEE(bmr, profile.activityLevel);
-    const target = calculateTargetCalories(tdee, profile.goal);
+    const target = calculateTargetCalories(tdee, profile.goals);
     const diff = tdee - target;
     if (diff > 0) {
       calorieLabel = 'Calorie deficit';

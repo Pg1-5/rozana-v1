@@ -26,13 +26,14 @@ interface Props {
 }
 
 export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onForward }: Props) {
+  const primaryGoal = profile.goals[0] || 'stay_fit';
   const insight = getInsightLine(checkIn);
-  const workout = getWorkoutSuggestion(checkIn, profile.goal);
+  const workout = getWorkoutSuggestion(checkIn, primaryGoal);
   const bmr = calculateBMR(profile);
   const tdee = calculateTDEE(bmr, profile.activityLevel);
-  const target = calculateTargetCalories(tdee, profile.goal);
+  const target = calculateTargetCalories(tdee, profile.goals);
   const usedRecipes = getUsedRecipes();
-  const mealSlots = getRecipeSuggestions(profile.goal, checkIn.dietPreferences, target, checkIn.kitchenInput, usedRecipes);
+  const mealSlots = getRecipeSuggestions(primaryGoal, checkIn.dietPreferences, target, checkIn.kitchenInput, usedRecipes);
 
   // Mark today's recipes as used
   useEffect(() => {

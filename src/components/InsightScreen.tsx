@@ -22,7 +22,7 @@ interface Props {
 export default function InsightScreen({ profile, onContinue, onBack, onForward }: Props) {
   const bmr = calculateBMR(profile);
   const tdee = calculateTDEE(bmr, profile.activityLevel);
-  const target = calculateTargetCalories(tdee, profile.goal);
+  const target = calculateTargetCalories(tdee, profile.goals);
   const bmi = calculateBMI(profile.weight, profile.height);
   const multiplier = getActivityMultiplier(profile.activityLevel);
 
@@ -97,7 +97,7 @@ export default function InsightScreen({ profile, onContinue, onBack, onForward }
           animate={{ opacity: 1 }}
           transition={{ delay: 1.0 }}
         >
-          {getDynamicCopy(profile.goal, tdee)}
+          {getDynamicCopy(profile.goals, tdee)}
         </motion.p>
 
         {/* Insight rows */}
@@ -113,7 +113,7 @@ export default function InsightScreen({ profile, onContinue, onBack, onForward }
           </div>
           <div className="flex justify-between text-sm font-body">
             <span className="text-muted-foreground">Calorie adjustment</span>
-            <span className="text-foreground">{getGoalAdjustmentLabel(profile.goal)}</span>
+            <span className="text-foreground">{getGoalAdjustmentLabel(profile.goals)}</span>
           </div>
           <div className="flex justify-between text-sm font-body">
             <span className="text-muted-foreground">BMI</span>
@@ -129,7 +129,7 @@ export default function InsightScreen({ profile, onContinue, onBack, onForward }
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
         >
-          <p className="text-sm font-body text-foreground leading-relaxed">{getGoalTip(profile.goal)}</p>
+          <p className="text-sm font-body text-foreground leading-relaxed">{getGoalTip(profile.goals)}</p>
         </motion.div>
 
         <motion.button
