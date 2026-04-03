@@ -57,7 +57,20 @@ const GOAL_ADJUSTMENTS: Record<string, number> = {
 export function calculateTargetCalories(tdee: number, goals: string[]): number {
   if (!goals.length) return tdee;
   const totalAdj = goals.reduce((sum, g) => sum + (GOAL_ADJUSTMENTS[g] ?? 0), 0);
-  const avgAdj = Math.round(totalAdj / goals.length);
+  let avgAdj = Math.round(totalAdj / goals.length);
+
+  const hasDeficit = goals.some(g => g === 'lose_weight' || g === 'fat_loss');
+  const hasSurplus = goals.includes('build_muscle');
+
+  // Enforce minimum deficit of 300 if any weight/fat loss goal is present
+  if (hasDeficit && avgAdj > -300) {
+    avgAdj = -300;
+  }
+  // Enforce minimum surplus of 200 if muscle gain goal is present
+  if (hasSurplus && !hasDeficit && avgAdj < 200) {
+    avgAdj = 200;
+  }
+
   return tdee + avgAdj;
 }
 
