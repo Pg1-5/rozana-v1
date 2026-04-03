@@ -110,11 +110,11 @@ export function getDynamicCopy(goals: string[], tdee: number): string {
 export function getGoalTip(goals: string[]): string {
   return goals.map(g => {
     switch (g) {
-      case 'lose_weight': return 'A 500 cal/day deficit creates roughly 0.5kg loss per week. Focus on protein-rich, filling foods.';
-      case 'fat_loss': return 'A 300 cal deficit preserves muscle while burning fat. Add strength training 3x/week.';
+      case 'lose_weight': return 'A 300 kcal/day deficit supports steady, sustainable weight loss without muscle loss.';
+      case 'fat_loss': return 'A 300 kcal deficit preserves muscle while burning fat. Add strength training 3x/week.';
       case 'stay_fit': return 'Eat at your maintenance calories. Prioritise food quality, sleep, and daily movement.';
       case 'build_consistency': return 'Calories matter less than showing up. Move your body daily and track without obsessing.';
-      case 'build_muscle': return 'A 300 cal surplus supports lean muscle growth. Prioritise progressive overload.';
+      case 'build_muscle': return 'A 200 kcal surplus supports lean muscle growth. Prioritise progressive overload and protein.';
       default: return '';
     }
   }).filter(Boolean).join(' • ');
