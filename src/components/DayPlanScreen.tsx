@@ -288,34 +288,30 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
                           className="w-full text-left transition-all"
                         >
                           <div
-                            className={`p-5 rounded-lg transition-all ${
+                            className={`p-5 pr-12 rounded-lg transition-all ${
                               isSelected
                                 ? 'ring-2 ring-primary bg-primary/5'
                                 : 'card-surface hover:bg-card-hover'
                             }`}
                           >
-                            <div className="flex justify-between items-start mb-1">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                                    isSelected
-                                      ? 'border-primary bg-primary'
-                                      : 'border-muted-foreground/30'
-                                  }`}
-                                >
-                                  {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
-                                </div>
-                                <h3 className="font-body font-medium text-foreground">{recipe.name}</h3>
-                                {isPrimary && (
-                                  <span className="text-[10px] font-body uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded">Best match</span>
-                                )}
+                            <div className="flex items-center gap-2 mb-1">
+                              <div
+                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                                  isSelected
+                                    ? 'border-primary bg-primary'
+                                    : 'border-muted-foreground/30'
+                                }`}
+                              >
+                                {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
                               </div>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <div className="flex gap-3 text-xs text-muted-foreground font-body">
-                                  <span>{recipe.kcal} kcal</span>
-                                  <span>{recipe.prepTime}</span>
-                                </div>
-                              </div>
+                              <h3 className="font-body font-medium text-foreground">{recipe.name}</h3>
+                              {isPrimary && (
+                                <span className="text-[10px] font-body uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded">Best match</span>
+                              )}
+                            </div>
+                            <div className="flex gap-3 ml-7 mt-1 text-xs text-muted-foreground font-body">
+                              <span>{recipe.kcal} kcal</span>
+                              <span>⏱ {recipe.prepTime}</span>
                             </div>
                             {/* Macro breakdown */}
                             {recipe.macros && (
