@@ -141,7 +141,12 @@ export default function Index() {
     case 'insight':
       return <InsightScreen profile={profile!} onContinue={() => goTo('checkin')} onBack={canGoBack ? goBack : undefined} onForward={canGoForward ? goForward : undefined} />;
     case 'checkin':
-      return <CheckInScreen name={profile!.name} onComplete={handleCheckInComplete} onBack={canGoBack ? goBack : undefined} />;
+      return (
+        <>
+          <CheckInScreen name={profile!.name} onComplete={handleCheckInComplete} onBack={canGoBack ? goBack : undefined} />
+          <RoziVoiceCoach userName={profile!.name} onCheckInComplete={handleCheckInComplete} />
+        </>
+      );
     case 'dayplan':
       return <DayPlanScreen profile={profile!} checkIn={checkIn!} onReflect={() => goTo('reflection')} onBack={canGoBack ? goBack : undefined} onForward={canGoForward ? goForward : undefined} />;
     case 'reflection':
