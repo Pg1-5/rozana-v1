@@ -148,14 +148,6 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
             })}
           </div>
 
-          {/* Walk target */}
-          <div className="card-surface p-4 mb-8 flex items-center gap-3">
-            <span className="text-lg">🚶</span>
-            <div>
-              <p className="text-sm font-body font-medium text-foreground">Daily walk: {workout.walkTarget.km} km</p>
-              <p className="text-xs font-body text-muted-foreground">{workout.walkTarget.note}</p>
-            </div>
-          </div>
         </motion.div>
 
         {/* Eat Smart section */}

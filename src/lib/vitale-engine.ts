@@ -259,9 +259,14 @@ function getIntensityLevel(checkIn: CheckInData): string {
 }
 
 function getWalkTarget(goal: string, intensity: string): { km: number; note: string } {
-  const base = goal === 'lose_weight' || goal === 'fat_loss' ? 5 : goal === 'build_muscle' ? 3 : 4;
-  const multiplier = intensity === 'low' ? 0.6 : intensity === 'high' ? 1.2 : 1;
-  const km = Math.round(base * multiplier * 10) / 10;
+  let km: number;
+  if (intensity === 'low') {
+    km = 3;
+  } else if (intensity === 'high') {
+    km = goal === 'lose_weight' || goal === 'fat_loss' ? 7 : 6;
+  } else {
+    km = 5;
+  }
   const notes: Record<string, string> = {
     lose_weight: `Walking ${km} km daily creates a steady calorie deficit without stressing your body.`,
     fat_loss: `A ${km} km walk keeps your fat-burning zone active while preserving muscle.`,
@@ -272,10 +277,9 @@ function getWalkTarget(goal: string, intensity: string): { km: number; note: str
   return { km, note: notes[goal] || `Walk ${km} km at a comfortable pace today.` };
 }
 
-// Map 0=Sun..6=Sat → split day index (0-based, 6-day cycle starting Monday)
+// Map 0=Sun..6=Sat → split day index (0-based, 5-day cycle + rest)
 function getSplitDayIndex(): number {
   const jsDay = new Date().getDay(); // 0=Sun
-  // Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=rest(5)
   if (jsDay === 0) return 5; // Sunday = rest day
   return jsDay - 1; // Mon=0 .. Sat=5
 }
@@ -286,18 +290,41 @@ export function getWorkoutSuggestion(checkIn: CheckInData, goal: string = 'stay_
   const walkTarget = getWalkTarget(goal, intensity);
   const splitIdx = getSplitDayIndex();
   const todaySplit = WEEKLY_SPLIT[splitIdx];
-  const dayNum = splitIdx + 1;
-  const dayLabel = todaySplit.category === 'rest' ? 'Day 6 — Rest Day' : `Day ${dayNum} — ${todaySplit.title}`;
+  const dayLabel = todaySplit.title;
 
+  // Rest day from schedule
+  if (todaySplit.category === 'rest') {
+    return {
+      message: 'Today is your rest day. Recovery is part of the process.',
+      dayLabel: 'Rest Day',
+      options: [{
+        category: 'rest', emoji: '😌', title: 'Rest Day',
+        description: todaySplit.description,
+        duration: '—',
+        exercises: todaySplit.exercises,
+      }],
+      walkTarget,
+    };
+  }
+
+  // Heavy mind → walk only
   if (checkIn.mind === 'heavy') {
     return {
       message: "Let's keep it gentle today. A walk is your workout.",
       dayLabel,
-      options: [{
-        category: 'walk', emoji: '🚶', title: 'Mindful Walk',
-        description: 'Step outside, breathe deep. That\'s your move today.',
-        duration: `${walkTarget.km} km`,
-      }],
+      options: [
+        {
+          category: 'walk', emoji: '🚶', title: `Daily Walk — ${walkTarget.km} km`,
+          description: walkTarget.note,
+          duration: `~${Math.round(walkTarget.km * 12)} min`,
+        },
+        {
+          category: 'rest', emoji: '😌', title: 'Rest Today',
+          description: 'Not feeling it? Rest is progress too. Stretch, hydrate, recover.',
+          duration: '—',
+          exercises: ['Light stretching — 10 min', 'Deep breathing — 5 min', 'Hydrate well'],
+        },
+      ],
       walkTarget,
     };
   }
@@ -313,16 +340,20 @@ export function getWorkoutSuggestion(checkIn: CheckInData, goal: string = 'stay_
     exercises,
   };
 
-  const options: WorkoutOption[] = [mainWorkout];
-
-  // Add walk alongside (not on rest day)
-  if (todaySplit.category !== 'rest') {
-    options.push({
+  const options: WorkoutOption[] = [
+    mainWorkout,
+    {
       category: 'walk', emoji: '🚶', title: `Daily Walk — ${walkTarget.km} km`,
       description: walkTarget.note,
       duration: `~${Math.round(walkTarget.km * 12)} min`,
-    });
-  }
+    },
+    {
+      category: 'rest', emoji: '😌', title: 'Rest Today',
+      description: 'Not feeling it? Rest is progress too. Stretch, hydrate, recover.',
+      duration: '—',
+      exercises: ['Light stretching — 10 min', 'Deep breathing — 5 min', 'Hydrate well'],
+    },
+  ];
 
   const messages: Record<string, string> = {
     low: 'Take it easy today — lighter version of your workout.',
@@ -331,7 +362,7 @@ export function getWorkoutSuggestion(checkIn: CheckInData, goal: string = 'stay_
   };
 
   return {
-    message: todaySplit.category === 'rest' ? 'Today is your rest day. Recovery is part of the process.' : (messages[intensity] || messages.moderate),
+    message: messages[intensity] || messages.moderate,
     dayLabel,
     options,
     walkTarget,
