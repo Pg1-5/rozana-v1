@@ -91,7 +91,11 @@ export function getActivityMultiplier(level: string): number {
 export function getGoalAdjustmentLabel(goals: string[]): string {
   if (!goals.length) return 'No adjustment';
   const totalAdj = goals.reduce((sum, g) => sum + (GOAL_ADJUSTMENTS[g] ?? 0), 0);
-  const avgAdj = Math.round(totalAdj / goals.length);
+  let avgAdj = Math.round(totalAdj / goals.length);
+  const hasDeficit = goals.some(g => g === 'lose_weight' || g === 'fat_loss');
+  const hasSurplus = goals.includes('build_muscle');
+  if (hasDeficit && avgAdj > -300) avgAdj = -300;
+  if (hasSurplus && !hasDeficit && avgAdj < 200) avgAdj = 200;
   if (avgAdj < 0) return `${avgAdj} kcal deficit`;
   if (avgAdj > 0) return `+${avgAdj} kcal surplus`;
   return 'No adjustment';
