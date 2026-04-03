@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import WelcomeScreen from '@/components/WelcomeScreen';
 import OnboardingFlow from '@/components/OnboardingFlow';
 import InsightScreen from '@/components/InsightScreen';
 import CheckInScreen from '@/components/CheckInScreen';
