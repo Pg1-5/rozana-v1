@@ -45,10 +45,16 @@ function pickFemaleVoice(lang: string): SpeechSynthesisVoice | null {
   return langVoices[0] || null;
 }
 
+function stripEmojis(text: string): string {
+  return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').replace(/\s{2,}/g, ' ').trim();
+}
+
 function speak(text: string, lang: RoziLang) {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const cleanText = stripEmojis(text);
+    if (!cleanText) return;
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     const speechLang = lang === 'hi' ? 'hi-IN' : 'en-IN';
     utterance.lang = speechLang;
     utterance.rate = 0.9;
