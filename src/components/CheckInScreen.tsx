@@ -17,7 +17,7 @@ type PillOption<T extends string> = { value: T; label: string; emoji?: string };
 const energyOptions: PillOption<'low' | 'balanced' | 'high'>[] = [
   { value: 'low', label: 'Low' },
   { value: 'balanced', label: 'Balanced' },
-  { value: 'high', label: 'High' },
+  { value: 'high', label: 'Energetic' },
 ];
 
 const sleepOptions: PillOption<'poor' | 'okay' | 'rested'>[] = [
