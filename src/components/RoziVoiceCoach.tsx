@@ -110,6 +110,13 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
     saveLang(newLang);
   };
 
+  const handleLangSelect = (selectedLang: RoziLang) => {
+    setLang(selectedLang);
+    saveLang(selectedLang);
+    setLangChosen(true);
+    // Greeting will fire via the useEffect watching langChosen
+  };
+
   const sendToRozi = useCallback(async (userText: string) => {
     const userMsg: Message = { role: 'user', content: userText };
     const updated = [...messages, userMsg];
