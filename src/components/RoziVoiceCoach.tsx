@@ -161,8 +161,8 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const greeting = lang === 'hi'
-        ? `Namaste ${userName}! Main Rozi hoon, aapki health coach. Batao, aaj aapki energy kaisi hai — kam, balanced ya high?`
-        : `Hi ${userName}! I'm Rozi, your health coach. Tell me, how's your energy today — low, balanced, or high?`;
+        ? `Namaste ${userName}! Main Rozi hoon, tumhari health coach. Batao, aaj energy kaisi lag rahi hai — kam, balanced ya energetic?`
+        : `Hey ${userName}! I'm Rozi, your health buddy. So tell me, how's your energy feeling today — low, balanced, or energetic?`;
       setMessages([{ role: 'assistant', content: greeting }]);
       speak(greeting, lang);
     }
