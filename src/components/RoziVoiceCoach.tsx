@@ -90,6 +90,7 @@ function cleanDisplayText(text: string): string {
 
 export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
   const [isOpen, setIsOpen] = useState(false);
+  const [langChosen, setLangChosen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isThinking, setIsThinking] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
