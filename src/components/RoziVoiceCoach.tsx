@@ -180,7 +180,7 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
   if (!isOpen) {
     return (
       <motion.button
-        onClick={() => setIsOpen(true)}
+        onClick={() => { setIsOpen(true); setLangChosen(false); setMessages([]); }}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:opacity-90 transition-opacity"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
@@ -190,6 +190,55 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
       >
         <MessageCircle size={24} />
       </motion.button>
+    );
+  }
+
+  // Language selection screen
+  if (!langChosen) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col items-center justify-center"
+          initial={{ opacity: 0, y: '100%' }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: '100%' }}
+          transition={{ type: 'spring', damping: 25 }}
+        >
+          <button
+            onClick={() => { window.speechSynthesis?.cancel(); setIsOpen(false); }}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full card-surface flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X size={16} />
+          </button>
+          <motion.div
+            className="text-center space-y-6"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h2 className="font-heading text-2xl font-semibold text-foreground">🎙️ Rozi</h2>
+            <p className="text-muted-foreground font-body text-sm">Choose your language / अपनी भाषा चुनें</p>
+            <div className="flex gap-4">
+              <motion.button
+                onClick={() => handleLangSelect('en')}
+                className="px-8 py-4 rounded-2xl card-surface text-foreground font-body font-medium text-lg hover:bg-card-hover transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                🇬🇧 English
+              </motion.button>
+              <motion.button
+                onClick={() => handleLangSelect('hi')}
+                className="px-8 py-4 rounded-2xl card-surface text-foreground font-body font-medium text-lg hover:bg-card-hover transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                🇮🇳 हिंदी
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
