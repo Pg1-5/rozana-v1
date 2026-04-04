@@ -97,7 +97,7 @@ export default function CheckInScreen({ name, onComplete, onBack }: Props) {
     onResult: (text) => {
       const match = matchEnergy(text);
       if (match) { setEnergy(match); showVoiceFeedback(`Energy: ${match}`, true); }
-      else showVoiceFeedback(`Heard "${text}" — say low, balanced, or high`, false);
+      else showVoiceFeedback(`Heard "${text}" — say low, balanced, or energetic`, false);
     },
     onError: (e) => showVoiceFeedback(e, false),
   });

@@ -135,7 +135,8 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
 
       const checkInData = parseCheckInData(reply);
       if (checkInData) {
-        setTimeout(() => onCheckInComplete(checkInData), 2000);
+        // Wait 7 seconds before transitioning so Rozi's summary feels unhurried
+        setTimeout(() => onCheckInComplete(checkInData), 7000);
       }
     } catch (e) {
       console.error('Rozi chat error:', e);
