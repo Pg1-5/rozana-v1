@@ -17,7 +17,7 @@ type PillOption<T extends string> = { value: T; label: string; emoji?: string };
 const energyOptions: PillOption<'low' | 'balanced' | 'high'>[] = [
   { value: 'low', label: 'Low' },
   { value: 'balanced', label: 'Balanced' },
-  { value: 'high', label: 'High' },
+  { value: 'high', label: 'Energetic' },
 ];
 
 const sleepOptions: PillOption<'poor' | 'okay' | 'rested'>[] = [
@@ -97,7 +97,7 @@ export default function CheckInScreen({ name, onComplete, onBack }: Props) {
     onResult: (text) => {
       const match = matchEnergy(text);
       if (match) { setEnergy(match); showVoiceFeedback(`Energy: ${match}`, true); }
-      else showVoiceFeedback(`Heard "${text}" — say low, balanced, or high`, false);
+      else showVoiceFeedback(`Heard "${text}" — say low, balanced, or energetic`, false);
     },
     onError: (e) => showVoiceFeedback(e, false),
   });
