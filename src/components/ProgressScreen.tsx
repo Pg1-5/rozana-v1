@@ -264,7 +264,52 @@ export default function ProgressScreen({ onCheckIn, onReset, onBack, onCommunity
           </motion.div>
         </div>
 
-        <div className="space-y-3">
+        {/* Share Progress */}
+        <motion.div
+          className="card-surface p-5 mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.52 }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Share2 className="w-4 h-4 text-primary" />
+            <p className="text-xs text-muted-foreground font-body uppercase tracking-wider">Share Your Progress</p>
+          </div>
+          <p className="font-body text-sm text-muted-foreground mb-4">
+            Inspire others by sharing your journey!
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                const text = `I've been active ${activeDays} of 7 days this week! ${steps.toLocaleString()} steps today 🚶‍♀️ #Vitale #HealthJourney`;
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg card-surface hover:bg-card-hover transition-colors font-body text-sm text-foreground"
+            >
+              <Twitter size={18} />
+              <span>X</span>
+            </button>
+            <button
+              onClick={() => {
+                window.open('https://www.instagram.com/', '_blank');
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg card-surface hover:bg-card-hover transition-colors font-body text-sm text-foreground"
+            >
+              <Instagram size={18} />
+              <span>Instagram</span>
+            </button>
+            <button
+              onClick={() => {
+                const text = `I've been active ${activeDays} of 7 days this week! ${steps.toLocaleString()} steps today 🚶‍♀️`;
+                window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(text)}`, '_blank');
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg card-surface hover:bg-card-hover transition-colors font-body text-sm text-foreground"
+            >
+              <Facebook size={18} />
+              <span>Facebook</span>
+            </button>
+          </div>
+        </motion.div>
           <button
             onClick={onCheckIn}
             className="w-full py-4 rounded-lg font-body font-medium text-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
