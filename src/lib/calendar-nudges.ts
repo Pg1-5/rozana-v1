@@ -223,7 +223,7 @@ export function scheduleNotification(nudge: SmartNudge): void {
   if (delay > 8 * 60 * 60 * 1000) return; // More than 8 hours away
 
   setTimeout(() => {
-    new Notification('Vitale 🌿', {
+    new Notification('Rozana 🌿', {
       body: `${nudge.emoji} ${nudge.message}`,
       icon: '/placeholder.svg',
       tag: `vitale-${nudge.type}-${nudge.time}`,
