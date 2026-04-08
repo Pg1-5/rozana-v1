@@ -164,7 +164,7 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
   const voiceInput = useVoiceInput({
     onResult: (text) => sendToRozi(text),
     onError: (e) => console.error('Voice error:', e),
-    lang: lang === 'hi' ? 'hi-IN' : 'en-IN',
+    lang: lang === 'hi' ? 'hi-IN' : 'en-GB',
   });
 
   useEffect(() => {
