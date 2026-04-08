@@ -54,18 +54,17 @@ function speak(text: string, lang: RoziLang) {
     const cleanText = stripEmojis(text);
     if (!cleanText) return;
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    const speechLang = lang === 'hi' ? 'hi-IN' : 'en-IN';
+    const speechLang = lang === 'hi' ? 'hi-IN' : 'en-GB';
     utterance.lang = speechLang;
     utterance.rate = 0.9;
     utterance.pitch = 1.15;
 
-    const voice = pickFemaleVoice(speechLang);
-    if (voice) {
-      utterance.voice = voice;
-    } else if (lang === 'en') {
-      // Fallback to en-US female
-      const fallback = pickFemaleVoice('en-US');
-      if (fallback) utterance.voice = fallback;
+    if (lang === 'hi') {
+      const voice = pickVoice('hi-IN', ['female', 'priya', 'aditi', 'lekha', 'google']);
+      if (voice) utterance.voice = voice;
+    } else {
+      const voice = pickVoice('en-GB', ['female', 'google uk', 'hazel', 'kate', 'serena', 'martha']);
+      if (voice) utterance.voice = voice;
     }
     window.speechSynthesis.speak(utterance);
   }
