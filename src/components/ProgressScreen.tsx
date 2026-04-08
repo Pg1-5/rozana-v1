@@ -4,7 +4,8 @@ import { getActiveDays, getMomentum, getWeeklySummary, checkWeeklyBadge, getBadg
 import { getProfile } from '@/lib/vitale-store';
 import { calculateBMR, calculateTDEE, calculateTargetCalories } from '@/lib/vitale-engine';
 import ScreenNav from '@/components/ScreenNav';
-import { Footprints, Flame, TrendingDown, TrendingUp, Trophy, Users, Award } from 'lucide-react';
+import { Footprints, Flame, TrendingDown, TrendingUp, Trophy, Users, Award, Share2 } from 'lucide-react';
+import { Twitter, Instagram, Facebook } from '@/components/SocialIcons';
 import type { Badge } from '@/lib/vitale-store';
 
 interface Props {
