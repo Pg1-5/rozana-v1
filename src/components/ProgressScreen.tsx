@@ -282,7 +282,8 @@ export default function ProgressScreen({ onCheckIn, onReset, onBack, onCommunity
             <button
               onClick={() => {
                 const text = `I've been active ${activeDays} of 7 days this week! ${steps.toLocaleString()} steps today 🚶‍♀️ #Rozana #HealthJourney`;
-                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                const url = 'https://your-rozana.lovable.app';
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
               }}
               className="flex items-center gap-2 px-4 py-2.5 rounded-lg card-surface hover:bg-card-hover transition-colors font-body text-sm text-foreground"
             >
