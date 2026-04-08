@@ -310,6 +310,7 @@ export default function ProgressScreen({ onCheckIn, onReset, onBack, onCommunity
             </button>
           </div>
         </motion.div>
+        <div className="space-y-3">
           <button
             onClick={onCheckIn}
             className="w-full py-4 rounded-lg font-body font-medium text-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
