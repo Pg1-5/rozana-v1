@@ -27,22 +27,21 @@ function saveLang(lang: RoziLang) {
   localStorage.setItem(LANG_STORAGE_KEY, lang);
 }
 
-function pickFemaleVoice(lang: string): SpeechSynthesisVoice | null {
+function pickVoice(lang: string, preferred: string[]): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices();
-  const femaleKeywords = ['female', 'priya', 'aditi', 'sundar', 'zira', 'samantha', 'google'];
-  const langVoices = voices.filter(v => v.lang.startsWith(lang.split('-')[0]));
-
-  // Try to find a female voice matching exact lang
-  const exactMatch = langVoices.filter(v => v.lang.replace('_', '-').toLowerCase().includes(lang.toLowerCase()));
-  for (const v of exactMatch) {
-    if (femaleKeywords.some(k => v.name.toLowerCase().includes(k))) return v;
+  // Exact lang match first
+  const exact = voices.filter(v => v.lang.replace('_', '-').toLowerCase() === lang.toLowerCase());
+  for (const v of exact) {
+    if (preferred.some(k => v.name.toLowerCase().includes(k))) return v;
   }
-  // Fallback: any voice for this language
-  for (const v of langVoices) {
-    if (femaleKeywords.some(k => v.name.toLowerCase().includes(k))) return v;
+  if (exact.length) return exact[0];
+  // Broader match
+  const prefix = lang.split('-')[0];
+  const broad = voices.filter(v => v.lang.startsWith(prefix));
+  for (const v of broad) {
+    if (preferred.some(k => v.name.toLowerCase().includes(k))) return v;
   }
-  // Fallback: first lang voice or null
-  return langVoices[0] || null;
+  return broad[0] || null;
 }
 
 function stripEmojis(text: string): string {
@@ -55,18 +54,17 @@ function speak(text: string, lang: RoziLang) {
     const cleanText = stripEmojis(text);
     if (!cleanText) return;
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    const speechLang = lang === 'hi' ? 'hi-IN' : 'en-IN';
+    const speechLang = lang === 'hi' ? 'hi-IN' : 'en-GB';
     utterance.lang = speechLang;
     utterance.rate = 0.9;
     utterance.pitch = 1.15;
 
-    const voice = pickFemaleVoice(speechLang);
-    if (voice) {
-      utterance.voice = voice;
-    } else if (lang === 'en') {
-      // Fallback to en-US female
-      const fallback = pickFemaleVoice('en-US');
-      if (fallback) utterance.voice = fallback;
+    if (lang === 'hi') {
+      const voice = pickVoice('hi-IN', ['female', 'priya', 'aditi', 'lekha', 'google']);
+      if (voice) utterance.voice = voice;
+    } else {
+      const voice = pickVoice('en-GB', ['female', 'google uk', 'hazel', 'kate', 'serena', 'martha']);
+      if (voice) utterance.voice = voice;
     }
     window.speechSynthesis.speak(utterance);
   }
@@ -166,7 +164,7 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
   const voiceInput = useVoiceInput({
     onResult: (text) => sendToRozi(text),
     onError: (e) => console.error('Voice error:', e),
-    lang: lang === 'hi' ? 'hi-IN' : 'en-IN',
+    lang: lang === 'hi' ? 'hi-IN' : 'en-GB',
   });
 
   useEffect(() => {
