@@ -226,7 +226,7 @@ export function scheduleNotification(nudge: SmartNudge): void {
     new Notification('Rozana 🌿', {
       body: `${nudge.emoji} ${nudge.message}`,
       icon: '/placeholder.svg',
-      tag: `vitale-${nudge.type}-${nudge.time}`,
+      tag: `rozana-${nudge.type}-${nudge.time}`,
     });
   }, delay);
 }
