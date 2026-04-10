@@ -48,11 +48,12 @@ function stripEmojis(text: string): string {
   return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').replace(/\s{2,}/g, ' ').trim();
 }
 
-function speak(text: string, lang: RoziLang) {
-  if ('speechSynthesis' in window) {
+function speak(text: string, lang: RoziLang): Promise<void> {
+  return new Promise((resolve) => {
+    if (!('speechSynthesis' in window)) { resolve(); return; }
     window.speechSynthesis.cancel();
     const cleanText = stripEmojis(text);
-    if (!cleanText) return;
+    if (!cleanText) { resolve(); return; }
     const utterance = new SpeechSynthesisUtterance(cleanText);
     const speechLang = lang === 'hi' ? 'hi-IN' : 'en-GB';
     utterance.lang = speechLang;
@@ -66,8 +67,11 @@ function speak(text: string, lang: RoziLang) {
       const voice = pickVoice('en-GB', ['female', 'google uk', 'hazel', 'kate', 'serena', 'martha']);
       if (voice) utterance.voice = voice;
     }
+
+    utterance.onend = () => resolve();
+    utterance.onerror = () => resolve();
     window.speechSynthesis.speak(utterance);
-  }
+  });
 }
 
 function parseCheckInData(text: string): CheckInData | null {
