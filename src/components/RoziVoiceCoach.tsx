@@ -145,14 +145,14 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
       const displayText = cleanDisplayText(reply);
       if (displayText) {
         setIsSpeaking(true);
-        speak(displayText, lang);
-        setTimeout(() => setIsSpeaking(false), displayText.length * 60);
+        await speak(displayText, lang);
+        setIsSpeaking(false);
       }
 
       const checkInData = parseCheckInData(reply);
       if (checkInData) {
-        // Wait 12 seconds so Rozi finishes speaking her summary before transitioning
-        setTimeout(() => onCheckInComplete(checkInData), 60000);
+        // Small pause after speech ends so transition feels natural
+        setTimeout(() => onCheckInComplete(checkInData), 1500);
       }
     } catch (e) {
       console.error('Rozi chat error:', e);
