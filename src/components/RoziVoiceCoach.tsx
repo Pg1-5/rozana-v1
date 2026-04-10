@@ -48,11 +48,12 @@ function stripEmojis(text: string): string {
   return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').replace(/\s{2,}/g, ' ').trim();
 }
 
-function speak(text: string, lang: RoziLang) {
-  if ('speechSynthesis' in window) {
+function speak(text: string, lang: RoziLang): Promise<void> {
+  return new Promise((resolve) => {
+    if (!('speechSynthesis' in window)) { resolve(); return; }
     window.speechSynthesis.cancel();
     const cleanText = stripEmojis(text);
-    if (!cleanText) return;
+    if (!cleanText) { resolve(); return; }
     const utterance = new SpeechSynthesisUtterance(cleanText);
     const speechLang = lang === 'hi' ? 'hi-IN' : 'en-GB';
     utterance.lang = speechLang;
@@ -66,8 +67,11 @@ function speak(text: string, lang: RoziLang) {
       const voice = pickVoice('en-GB', ['female', 'google uk', 'hazel', 'kate', 'serena', 'martha']);
       if (voice) utterance.voice = voice;
     }
+
+    utterance.onend = () => resolve();
+    utterance.onerror = () => resolve();
     window.speechSynthesis.speak(utterance);
-  }
+  });
 }
 
 function parseCheckInData(text: string): CheckInData | null {
@@ -141,14 +145,14 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
       const displayText = cleanDisplayText(reply);
       if (displayText) {
         setIsSpeaking(true);
-        speak(displayText, lang);
-        setTimeout(() => setIsSpeaking(false), displayText.length * 60);
+        await speak(displayText, lang);
+        setIsSpeaking(false);
       }
 
       const checkInData = parseCheckInData(reply);
       if (checkInData) {
-        // Wait 12 seconds so Rozi finishes speaking her summary before transitioning
-        setTimeout(() => onCheckInComplete(checkInData), 60000);
+        // Small pause after speech ends so transition feels natural
+        setTimeout(() => onCheckInComplete(checkInData), 1500);
       }
     } catch (e) {
       console.error('Rozi chat error:', e);
@@ -177,7 +181,8 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
         ? `Namaste ${userName}! Main Rozi hoon, tumhari health buddy. Batao, aaj kaisa feel ho raha hai?`
         : `Hey ${userName}! I'm Rozi, your health buddy. So tell me, how are you feeling today?`;
       setMessages([{ role: 'assistant', content: greeting }]);
-      speak(greeting, lang);
+      setIsSpeaking(true);
+      speak(greeting, lang).then(() => setIsSpeaking(false));
     }
   }, [isOpen, langChosen, userName, lang]);
 
