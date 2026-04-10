@@ -181,7 +181,8 @@ export default function RoziVoiceCoach({ userName, onCheckInComplete }: Props) {
         ? `Namaste ${userName}! Main Rozi hoon, tumhari health buddy. Batao, aaj kaisa feel ho raha hai?`
         : `Hey ${userName}! I'm Rozi, your health buddy. So tell me, how are you feeling today?`;
       setMessages([{ role: 'assistant', content: greeting }]);
-      speak(greeting, lang);
+      setIsSpeaking(true);
+      speak(greeting, lang).then(() => setIsSpeaking(false));
     }
   }, [isOpen, langChosen, userName, lang]);
 
