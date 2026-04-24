@@ -367,6 +367,7 @@ export default function ProgressScreen({ onCheckIn, onReset, onBack, onCommunity
               <Users className="w-5 h-5" />
               Community
             </button>
+          )}
           <button
             onClick={handleExportExcel}
             disabled={exporting}
