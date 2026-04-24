@@ -24,7 +24,7 @@ export async function saveProfileToBackend(profile: UserProfile): Promise<void> 
 
   const { error } = await supabase
     .from('user_profiles')
-    .upsert(row, { onConflict: 'user_id' });
+    .upsert([row], { onConflict: 'user_id' });
 
   if (error) console.error('Failed to save profile to backend:', error);
 }
