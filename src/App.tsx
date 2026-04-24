@@ -7,6 +7,7 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Auth from "./pages/Auth.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
+import Welcome from "./pages/Welcome.tsx";
 import { useAuth } from "@/hooks/use-auth";
 
 const queryClient = new QueryClient();
@@ -20,7 +21,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  if (!session) return <Navigate to="/auth" replace />;
+  if (!session) return <Navigate to="/welcome" replace />;
   return <>{children}</>;
 }
 
@@ -31,6 +32,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/welcome" element={<Welcome />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
