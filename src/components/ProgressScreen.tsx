@@ -53,11 +53,48 @@ export default function ProgressScreen({ onCheckIn, onReset, onBack, onCommunity
   const summaryMessage = getWeeklySummaryMessage(summary);
 
   const [newBadge, setNewBadge] = useState<Badge | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const badge = checkWeeklyBadge();
     if (badge) setNewBadge(badge);
   }, []);
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const row = await fetchMyProfileRow();
+      if (!row) {
+        toast.error('No profile data found yet.');
+        return;
+      }
+      // Flatten raw_profile into top-level columns for a clean sheet
+      const raw = (row.raw_profile ?? {}) as Record<string, unknown>;
+      const flat: Record<string, unknown> = {
+        name: row.name,
+        age: row.age,
+        gender: row.gender,
+        height_cm: row.height_cm,
+        weight_kg: row.weight_kg,
+        activity_level: row.activity_level,
+        goal: row.goal,
+        goals: Array.isArray(raw.goals) ? (raw.goals as string[]).join(', ') : '',
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      };
+      const ws = XLSX.utils.json_to_sheet([flat]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Profile');
+      const stamp = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `rozana-profile-${stamp}.xlsx`);
+      toast.success('Profile exported');
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not export profile');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const profile = getProfile();
   let calorieLabel = '';
