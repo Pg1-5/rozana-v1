@@ -4,12 +4,9 @@ import { getActiveDays, getMomentum, getWeeklySummary, checkWeeklyBadge, getBadg
 import { getProfile } from '@/lib/vitale-store';
 import { calculateBMR, calculateTDEE, calculateTargetCalories } from '@/lib/vitale-engine';
 import ScreenNav from '@/components/ScreenNav';
-import { Footprints, Flame, TrendingDown, TrendingUp, Trophy, Users, Award, Share2, Download } from 'lucide-react';
+import { Footprints, Flame, TrendingDown, TrendingUp, Trophy, Users, Award, Share2 } from 'lucide-react';
 import { Twitter, Instagram, Facebook } from '@/components/SocialIcons';
 import type { Badge } from '@/lib/vitale-store';
-import { fetchMyProfileRow } from '@/lib/profile-sync';
-import * as XLSX from 'xlsx';
-import { toast } from 'sonner';
 
 interface Props {
   onCheckIn: () => void;
@@ -53,48 +50,11 @@ export default function ProgressScreen({ onCheckIn, onReset, onBack, onCommunity
   const summaryMessage = getWeeklySummaryMessage(summary);
 
   const [newBadge, setNewBadge] = useState<Badge | null>(null);
-  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const badge = checkWeeklyBadge();
     if (badge) setNewBadge(badge);
   }, []);
-
-  const handleExportExcel = async () => {
-    setExporting(true);
-    try {
-      const row = await fetchMyProfileRow();
-      if (!row) {
-        toast.error('No profile data found yet.');
-        return;
-      }
-      // Flatten raw_profile into top-level columns for a clean sheet
-      const raw = (row.raw_profile ?? {}) as Record<string, unknown>;
-      const flat: Record<string, unknown> = {
-        name: row.name,
-        age: row.age,
-        gender: row.gender,
-        height_cm: row.height_cm,
-        weight_kg: row.weight_kg,
-        activity_level: row.activity_level,
-        goal: row.goal,
-        goals: Array.isArray(raw.goals) ? (raw.goals as string[]).join(', ') : '',
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-      };
-      const ws = XLSX.utils.json_to_sheet([flat]);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Profile');
-      const stamp = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `rozana-profile-${stamp}.xlsx`);
-      toast.success('Profile exported');
-    } catch (e) {
-      console.error(e);
-      toast.error('Could not export profile');
-    } finally {
-      setExporting(false);
-    }
-  };
 
   const profile = getProfile();
   let calorieLabel = '';
@@ -368,14 +328,6 @@ export default function ProgressScreen({ onCheckIn, onReset, onBack, onCommunity
               Community
             </button>
           )}
-          <button
-            onClick={handleExportExcel}
-            disabled={exporting}
-            className="w-full py-4 rounded-lg font-body font-medium text-lg card-surface hover:bg-card-hover transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            <Download className="w-5 h-5" />
-            {exporting ? 'Exporting...' : 'Export profile to Excel'}
-          </button>
           <button
             onClick={onReset}
             className="w-full py-3 rounded-lg font-body text-sm text-muted-foreground hover:text-foreground transition-colors"

@@ -9,7 +9,6 @@ import ProgressScreen from '@/components/ProgressScreen';
 import CommunityFeed from '@/components/CommunityFeed';
 import { UserProfile, CheckInData } from '@/lib/vitale-engine';
 import { saveProfile, getProfile, saveCheckIn, getTodayCheckIn, saveReflection, addMomentum, clearAll } from '@/lib/vitale-store';
-import { saveProfileToBackend } from '@/lib/profile-sync';
 import { addCommunityPost } from '@/lib/community-store';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -117,8 +116,6 @@ export default function Index() {
   const handleOnboardingComplete = (p: UserProfile) => {
     setProfile(p);
     saveProfile(p);
-    // Persist to backend so it can be exported as Excel later
-    saveProfileToBackend(p).catch((e) => console.error(e));
     goTo('insight');
   };
 
