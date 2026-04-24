@@ -9,6 +9,7 @@ import ProgressScreen from '@/components/ProgressScreen';
 import CommunityFeed from '@/components/CommunityFeed';
 import { UserProfile, CheckInData } from '@/lib/vitale-engine';
 import { saveProfile, getProfile, saveCheckIn, getTodayCheckIn, saveReflection, addMomentum, clearAll } from '@/lib/vitale-store';
+import { saveProfileToBackend } from '@/lib/profile-sync';
 import { addCommunityPost } from '@/lib/community-store';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
