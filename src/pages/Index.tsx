@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import WelcomeScreen from '@/components/WelcomeScreen';
 import OnboardingFlow from '@/components/OnboardingFlow';
 import InsightScreen from '@/components/InsightScreen';
 import CheckInScreen from '@/components/CheckInScreen';
@@ -15,7 +14,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-const SCREENS = ['welcome', 'onboarding', 'insight', 'checkin', 'dayplan', 'reflection', 'progress', 'community'] as const;
+const SCREENS = ['onboarding', 'insight', 'checkin', 'dayplan', 'reflection', 'progress', 'community'] as const;
 type Screen = (typeof SCREENS)[number];
 
 // Demo stats for sharing
@@ -45,7 +44,7 @@ const SHARE_MESSAGES: Record<string, string[]> = {
 
 export default function Index() {
   const { user } = useAuth();
-  const [screen, setScreen] = useState<Screen>('welcome');
+  const [screen, setScreen] = useState<Screen>('onboarding');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [checkIn, setCheckIn] = useState<CheckInData | null>(null);
   const [history, setHistory] = useState<Screen[]>([]);
@@ -162,8 +161,6 @@ export default function Index() {
   const canGoForward = !!getForwardScreen();
 
   switch (screen) {
-    case 'welcome':
-      return <WelcomeScreen onStart={() => goTo('onboarding')} />;
     case 'onboarding':
       return <OnboardingFlow onComplete={handleOnboardingComplete} initialName={prefillName} />;
     case 'insight':
