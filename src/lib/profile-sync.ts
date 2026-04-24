@@ -19,7 +19,7 @@ export async function saveProfileToBackend(profile: UserProfile): Promise<void> 
     weight_kg: profile.weight,
     activity_level: profile.activityLevel,
     goal: (profile.goals && profile.goals[0]) || null,
-    raw_profile: profile as unknown as Record<string, unknown>,
+    raw_profile: JSON.parse(JSON.stringify(profile)),
   };
 
   const { error } = await supabase
