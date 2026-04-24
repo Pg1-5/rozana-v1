@@ -13,6 +13,7 @@ interface Props {
   onReset: () => void;
   onBack?: () => void;
   onCommunity?: () => void;
+  onSignOut?: () => void;
 }
 
 const insights = [
@@ -39,7 +40,7 @@ function getWeeklySummaryMessage(summary: { onTrack: number; almost: number; res
   return "You've started the week. Remember, even one day of showing up makes a difference.";
 }
 
-export default function ProgressScreen({ onCheckIn, onReset, onBack, onCommunity }: Props) {
+export default function ProgressScreen({ onCheckIn, onReset, onBack, onCommunity, onSignOut }: Props) {
   const activeDays = getActiveDays();
   const momentum = getMomentum();
   const insight = insights[Math.floor(Math.random() * insights.length)];
@@ -333,6 +334,14 @@ export default function ProgressScreen({ onCheckIn, onReset, onBack, onCommunity
           >
             Reset profile
           </button>
+          {onSignOut && (
+            <button
+              onClick={onSignOut}
+              className="w-full py-3 rounded-lg font-body text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Sign out
+            </button>
+          )}
         </div>
       </div>
     </div>

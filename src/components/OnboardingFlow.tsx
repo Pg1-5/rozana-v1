@@ -5,6 +5,7 @@ import { UserProfile, GOAL_OPTIONS, ACTIVITY_OPTIONS } from '@/lib/vitale-engine
 
 interface Props {
   onComplete: (profile: UserProfile) => void;
+  initialName?: string;
 }
 
 const fadeUp = {
@@ -14,9 +15,9 @@ const fadeUp = {
   transition: { duration: 0.5, ease: 'easeOut' as const },
 };
 
-export default function OnboardingFlow({ onComplete }: Props) {
+export default function OnboardingFlow({ onComplete, initialName }: Props) {
   const [step, setStep] = useState(0);
-  const [profile, setProfile] = useState<Partial<UserProfile>>({});
+  const [profile, setProfile] = useState<Partial<UserProfile>>(initialName ? { name: initialName } : {});
 
   const next = () => setStep((s) => s + 1);
   const back = () => setStep((s) => Math.max(0, s - 1));
