@@ -11,6 +11,9 @@ import CommunityFeed from '@/components/CommunityFeed';
 import { UserProfile, CheckInData } from '@/lib/vitale-engine';
 import { saveProfile, getProfile, saveCheckIn, getTodayCheckIn, saveReflection, addMomentum, clearAll } from '@/lib/vitale-store';
 import { addCommunityPost } from '@/lib/community-store';
+import { useAuth } from '@/hooks/use-auth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const SCREENS = ['welcome', 'onboarding', 'insight', 'checkin', 'dayplan', 'reflection', 'progress', 'community'] as const;
 type Screen = (typeof SCREENS)[number];
@@ -41,10 +44,12 @@ const SHARE_MESSAGES: Record<string, string[]> = {
 };
 
 export default function Index() {
+  const { user } = useAuth();
   const [screen, setScreen] = useState<Screen>('welcome');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [checkIn, setCheckIn] = useState<CheckInData | null>(null);
   const [history, setHistory] = useState<Screen[]>([]);
+  const [prefillName, setPrefillName] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const saved = getProfile();
@@ -59,6 +64,26 @@ export default function Index() {
       }
     }
   }, []);
+
+  // Pull name from signed-in user's profile so onboarding can prefill it
+  useEffect(() => {
+    if (!user) return;
+    const metaName = (user.user_metadata?.full_name as string | undefined)?.trim();
+    if (metaName) setPrefillName(metaName);
+    supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.full_name) setPrefillName(data.full_name);
+      });
+  }, [user]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast.success('Signed out');
+  };
 
   const goTo = (next: Screen) => {
     setHistory((h) => [...h, screen]);
@@ -140,7 +165,7 @@ export default function Index() {
     case 'welcome':
       return <WelcomeScreen onStart={() => goTo('onboarding')} />;
     case 'onboarding':
-      return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+      return <OnboardingFlow onComplete={handleOnboardingComplete} initialName={prefillName} />;
     case 'insight':
       return <InsightScreen profile={profile!} onContinue={() => goTo('checkin')} onBack={canGoBack ? goBack : undefined} onForward={canGoForward ? goForward : undefined} />;
     case 'checkin':
@@ -155,7 +180,7 @@ export default function Index() {
     case 'reflection':
       return <EveningReflection onComplete={handleReflectionComplete} onBack={canGoBack ? goBack : undefined} />;
     case 'progress':
-      return <ProgressScreen onCheckIn={() => goTo('checkin')} onReset={handleReset} onBack={canGoBack ? goBack : undefined} onCommunity={() => goTo('community')} />;
+      return <ProgressScreen onCheckIn={() => goTo('checkin')} onReset={handleReset} onBack={canGoBack ? goBack : undefined} onCommunity={() => goTo('community')} onSignOut={handleSignOut} />;
     case 'community':
       return <CommunityFeed onBack={goBack} />;
   }
