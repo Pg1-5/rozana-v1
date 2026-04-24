@@ -117,6 +117,8 @@ export default function Index() {
   const handleOnboardingComplete = (p: UserProfile) => {
     setProfile(p);
     saveProfile(p);
+    // Persist to backend so it can be exported as Excel later
+    saveProfileToBackend(p).catch((e) => console.error(e));
     goTo('insight');
   };
 
