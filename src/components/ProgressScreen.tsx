@@ -367,7 +367,14 @@ export default function ProgressScreen({ onCheckIn, onReset, onBack, onCommunity
               <Users className="w-5 h-5" />
               Community
             </button>
-          )}
+          <button
+            onClick={handleExportExcel}
+            disabled={exporting}
+            className="w-full py-4 rounded-lg font-body font-medium text-lg card-surface hover:bg-card-hover transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+          >
+            <Download className="w-5 h-5" />
+            {exporting ? 'Exporting...' : 'Export profile to Excel'}
+          </button>
           <button
             onClick={onReset}
             className="w-full py-3 rounded-lg font-body text-sm text-muted-foreground hover:text-foreground transition-colors"
