@@ -82,7 +82,7 @@ export default function OnboardingFlow({ onComplete, initialName }: Props) {
       <div className="w-full max-w-[520px]">
         {/* Back + Progress bar */}
         <div className="flex items-center gap-3 mb-12">
-          {step > 0 ? (
+          {step > firstStep ? (
             <button
               onClick={back}
               className="w-10 h-10 rounded-full card-surface hover:bg-card-hover flex items-center justify-center transition-colors flex-shrink-0"
@@ -94,14 +94,17 @@ export default function OnboardingFlow({ onComplete, initialName }: Props) {
             <div className="w-10 flex-shrink-0" />
           )}
           <div className="flex gap-1.5 flex-1">
-            {Array.from({ length: 7 }).map((_, i) => (
-              <div
-                key={i}
-                className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
-                  i <= step ? 'bg-primary' : 'bg-muted'
-                }`}
-              />
-            ))}
+            {Array.from({ length: 7 - firstStep }).map((_, i) => {
+              const stepIndex = i + firstStep;
+              return (
+                <div
+                  key={i}
+                  className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
+                    stepIndex <= step ? 'bg-primary' : 'bg-muted'
+                  }`}
+                />
+              );
+            })}
           </div>
         </div>
 
