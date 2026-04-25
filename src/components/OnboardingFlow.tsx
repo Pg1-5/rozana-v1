@@ -266,7 +266,7 @@ export default function OnboardingFlow({ onComplete, initialName }: Props) {
         </motion.div>
 
         {/* Disclaimer */}
-        {step === 0 && (
+        {step === firstStep && (
           <p className="text-xs text-muted-foreground text-center mt-8 max-w-sm mx-auto">
             Rozana supports general health and fitness guidance. For medical conditions, please consult a healthcare professional.
           </p>
