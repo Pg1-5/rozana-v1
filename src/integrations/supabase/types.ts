@@ -44,6 +44,123 @@ export type Database = {
         }
         Relationships: []
       }
+      user_calendar_events: {
+        Row: {
+          created_at: string
+          end_time: string
+          event_type: string
+          google_event_id: string
+          id: string
+          raw: Json | null
+          start_time: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          event_type?: string
+          google_event_id: string
+          id?: string
+          raw?: Json | null
+          start_time: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          event_type?: string
+          google_event_id?: string
+          id?: string
+          raw?: Json | null
+          start_time?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_calendar_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          google_email: string | null
+          id: string
+          provider: string
+          refresh_token: string | null
+          scope: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          google_email?: string | null
+          id?: string
+          provider?: string
+          refresh_token?: string | null
+          scope?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          google_email?: string | null
+          id?: string
+          provider?: string
+          refresh_token?: string | null
+          scope?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_notification_prefs: {
+        Row: {
+          breathe_enabled: boolean
+          created_at: string
+          hydration_enabled: boolean
+          id: string
+          native_push_enabled: boolean
+          push_token: string | null
+          stretch_enabled: boolean
+          updated_at: string
+          user_id: string
+          walk_enabled: boolean
+          web_push_enabled: boolean
+        }
+        Insert: {
+          breathe_enabled?: boolean
+          created_at?: string
+          hydration_enabled?: boolean
+          id?: string
+          native_push_enabled?: boolean
+          push_token?: string | null
+          stretch_enabled?: boolean
+          updated_at?: string
+          user_id: string
+          walk_enabled?: boolean
+          web_push_enabled?: boolean
+        }
+        Update: {
+          breathe_enabled?: boolean
+          created_at?: string
+          hydration_enabled?: boolean
+          id?: string
+          native_push_enabled?: boolean
+          push_token?: string | null
+          stretch_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+          walk_enabled?: boolean
+          web_push_enabled?: boolean
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           activity_level: string | null
