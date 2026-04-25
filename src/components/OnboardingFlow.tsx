@@ -16,11 +16,13 @@ const fadeUp = {
 };
 
 export default function OnboardingFlow({ onComplete, initialName }: Props) {
-  const [step, setStep] = useState(0);
-  const [profile, setProfile] = useState<Partial<UserProfile>>(initialName ? { name: initialName } : {});
+  const hasPresetName = !!initialName?.trim();
+  const firstStep = hasPresetName ? 1 : 0;
+  const [step, setStep] = useState(firstStep);
+  const [profile, setProfile] = useState<Partial<UserProfile>>(hasPresetName ? { name: initialName!.trim() } : {});
 
   const next = () => setStep((s) => s + 1);
-  const back = () => setStep((s) => Math.max(0, s - 1));
+  const back = () => setStep((s) => Math.max(firstStep, s - 1));
   const update = (field: string, value: string | number | string[]) => setProfile((p) => ({ ...p, [field]: value }));
   const toggleGoal = (goalId: string) => {
     setProfile((p) => {
