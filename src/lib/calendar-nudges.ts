@@ -205,6 +205,26 @@ export function generateSmartNudges(events: CalendarEvent[]): SmartNudge[] {
   return upcoming.slice(0, 6);
 }
 
+// Convert Google Calendar API events to CalendarEvent shape
+export function googleEventsToCalendarEvents(
+  events: { title: string; start: string; end: string }[],
+): CalendarEvent[] {
+  return events.map((e) => {
+    const s = new Date(e.start);
+    const en = new Date(e.end);
+    const fmt = (d: Date) =>
+      `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    const title = (e.title || 'Busy').toLowerCase();
+    const type: CalendarEvent['type'] =
+      title.includes('lunch') || title.includes('break')
+        ? 'break'
+        : title.includes('focus') || title.includes('deep work')
+          ? 'focus'
+          : 'meeting';
+    return { title: e.title || 'Busy', startTime: fmt(s), endTime: fmt(en), type };
+  });
+}
+
 // Browser notification support
 export function requestNotificationPermission(): Promise<NotificationPermission> {
   if (!('Notification' in window)) return Promise.resolve('denied' as NotificationPermission);
