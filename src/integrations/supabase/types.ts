@@ -44,6 +44,66 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profiles: {
+        Row: {
+          activity_level: string | null
+          age: number | null
+          allergies: string[] | null
+          created_at: string
+          dietary_preference: string | null
+          gender: string | null
+          goal: string | null
+          height_cm: number | null
+          id: string
+          language: string | null
+          name: string | null
+          raw_profile: Json | null
+          sleep_hours: number | null
+          updated_at: string
+          user_id: string
+          weight_kg: number | null
+          work_schedule: string | null
+        }
+        Insert: {
+          activity_level?: string | null
+          age?: number | null
+          allergies?: string[] | null
+          created_at?: string
+          dietary_preference?: string | null
+          gender?: string | null
+          goal?: string | null
+          height_cm?: number | null
+          id?: string
+          language?: string | null
+          name?: string | null
+          raw_profile?: Json | null
+          sleep_hours?: number | null
+          updated_at?: string
+          user_id: string
+          weight_kg?: number | null
+          work_schedule?: string | null
+        }
+        Update: {
+          activity_level?: string | null
+          age?: number | null
+          allergies?: string[] | null
+          created_at?: string
+          dietary_preference?: string | null
+          gender?: string | null
+          goal?: string | null
+          height_cm?: number | null
+          id?: string
+          language?: string | null
+          name?: string | null
+          raw_profile?: Json | null
+          sleep_hours?: number | null
+          updated_at?: string
+          user_id?: string
+          weight_kg?: number | null
+          work_schedule?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
