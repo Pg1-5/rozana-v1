@@ -148,6 +148,41 @@ export default function CalendarNudges({ animationDelay = 0 }: Props) {
         </button>
       </div>
 
+      {/* Google Calendar connection */}
+      <div className="card-surface p-3 mb-4 flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs font-body text-foreground">
+            {connected ? `Synced with ${googleEmail ?? 'Google Calendar'}` : 'Connect Google Calendar'}
+          </p>
+          <p className="text-[11px] font-body text-muted-foreground">
+            {connected
+              ? usingDemo
+                ? 'No events today — using sample schedule'
+                : 'Reminders adapt to your real busy/free windows'
+              : 'Get reminders based on your real schedule'}
+          </p>
+        </div>
+        {connected ? (
+          <button
+            onClick={loadGoogleEvents}
+            disabled={syncing}
+            className="flex items-center gap-1.5 text-xs font-body px-3 py-1.5 rounded-full bg-muted/50 text-muted-foreground"
+          >
+            <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing' : 'Resync'}
+          </button>
+        ) : (
+          <button
+            onClick={connectGoogle}
+            className="flex items-center gap-1.5 text-xs font-body px-3 py-1.5 rounded-full bg-primary text-primary-foreground"
+          >
+            <LinkIcon className="w-3 h-3" />
+            Connect
+          </button>
+        )}
+      </div>
+
+
       {notificationPermission === 'denied' && (
         <p className="text-xs text-muted-foreground font-body mb-3 italic">
           Notifications blocked by your browser — enable from browser settings
