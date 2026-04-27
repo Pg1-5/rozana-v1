@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, BellOff, Calendar, Clock, Link2, Loader2, LogOut } from 'lucide-react';
+import { Bell, BellOff, Calendar, Clock } from 'lucide-react';
 import {
   CalendarEvent,
   SmartNudge,
@@ -8,156 +8,45 @@ import {
   getDemoCalendar,
   findFreeSlots,
   generateSmartNudges,
-  googleEventsToCalendarEvents,
   requestNotificationPermission,
   scheduleAllNotifications,
 } from '@/lib/calendar-nudges';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
 
 interface Props {
   animationDelay?: number;
 }
 
 export default function CalendarNudges({ animationDelay = 0 }: Props) {
-  const [events, setEvents] = useState<CalendarEvent[]>(getDemoCalendar());
-  const [isDemo, setIsDemo] = useState(true);
-  const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
-  const [connecting, setConnecting] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const [events] = useState<CalendarEvent[]>(getDemoCalendar);
   const [nudges, setNudges] = useState<SmartNudge[]>([]);
   const [freeSlots, setFreeSlots] = useState<FreeSlot[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [notificationPermission, setNotificationPermission] =
-    useState<NotificationPermission>('default');
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
 
-  // Recompute nudges whenever events change
   useEffect(() => {
     const generated = generateSmartNudges(events);
     setNudges(generated);
     setFreeSlots(findFreeSlots(events));
-    if (notificationsEnabled) scheduleAllNotifications(generated);
-  }, [events, notificationsEnabled]);
 
-  // Load notification permission state + saved prefs + sync calendar
-  useEffect(() => {
     if ('Notification' in window) {
       setNotificationPermission(Notification.permission);
-    }
-    void loadPrefs();
-    void syncCalendar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadPrefs = async () => {
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return;
-    const { data } = await supabase
-      .from('user_notification_prefs')
-      .select('web_push_enabled')
-      .eq('user_id', u.user.id)
-      .maybeSingle();
-    if (data?.web_push_enabled && Notification.permission === 'granted') {
-      setNotificationsEnabled(true);
-    }
-  };
-
-  const savePref = async (enabled: boolean) => {
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return;
-    const { data: existing } = await supabase
-      .from('user_notification_prefs')
-      .select('id')
-      .eq('user_id', u.user.id)
-      .maybeSingle();
-    if (existing) {
-      await supabase
-        .from('user_notification_prefs')
-        .update({ web_push_enabled: enabled, native_push_enabled: enabled })
-        .eq('id', existing.id);
-    } else {
-      await supabase.from('user_notification_prefs').insert({
-        user_id: u.user.id,
-        web_push_enabled: enabled,
-        native_push_enabled: enabled,
-      });
-    }
-  };
-
-  const syncCalendar = useCallback(async () => {
-    setSyncing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('google-calendar-sync', {
-        body: {},
-      });
-      if (error) throw error;
-      if (data?.connected && Array.isArray(data.events)) {
-        setConnectedEmail(data.email ?? null);
-        if (data.events.length > 0) {
-          setEvents(googleEventsToCalendarEvents(data.events));
-          setIsDemo(false);
-        } else {
-          // Connected but no events today — keep showing free-day reminders
-          setEvents([]);
-          setIsDemo(false);
-        }
-      } else {
-        setIsDemo(true);
-        setEvents(getDemoCalendar());
+      if (Notification.permission === 'granted') {
+        setNotificationsEnabled(true);
       }
-    } catch (e) {
-      console.error('Calendar sync failed', e);
-    } finally {
-      setSyncing(false);
     }
-  }, []);
-
-  const connectGoogle = async () => {
-    setConnecting(true);
-    try {
-      const redirectUri = `${window.location.origin}/calendar-callback`;
-      const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
-        body: { action: 'get_auth_url', redirect_uri: redirectUri },
-      });
-      if (error || !data?.url) throw new Error(error?.message || 'Could not start sign-in');
-      window.location.href = data.url;
-    } catch (e: unknown) {
-      console.error(e);
-      toast({
-        title: 'Could not connect',
-        description: e instanceof Error ? e.message : 'Try again in a moment',
-      });
-      setConnecting(false);
-    }
-  };
-
-  const disconnectGoogle = async () => {
-    try {
-      await supabase.functions.invoke('google-calendar-oauth', {
-        body: { action: 'disconnect' },
-      });
-      setConnectedEmail(null);
-      setIsDemo(true);
-      setEvents(getDemoCalendar());
-      toast({ title: 'Calendar disconnected' });
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  }, [events]);
 
   const toggleNotifications = async () => {
     if (notificationsEnabled) {
       setNotificationsEnabled(false);
-      await savePref(false);
       return;
     }
+
     const permission = await requestNotificationPermission();
     setNotificationPermission(permission);
     if (permission === 'granted') {
       setNotificationsEnabled(true);
       scheduleAllNotifications(nudges);
-      await savePref(true);
-      toast({ title: 'Soft nudges enabled', description: 'You\'ll get gentle reminders today' });
     }
   };
 
@@ -195,53 +84,13 @@ export default function CalendarNudges({ animationDelay = 0 }: Props) {
               : 'hsl(var(--muted-foreground))',
           }}
         >
-          {notificationsEnabled ? <Bell className="w-3 h-3" /> : <BellOff className="w-3 h-3" />}
-          {notificationsEnabled ? 'Nudges on' : 'Enable nudges'}
-        </button>
-      </div>
-
-      {/* Google Calendar connection card */}
-      <div className="card-surface p-4 mb-4 flex items-center justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          {connectedEmail ? (
-            <>
-              <p className="text-xs text-muted-foreground font-body">Synced with Google Calendar</p>
-              <p className="text-sm font-body text-foreground truncate">{connectedEmail}</p>
-            </>
+          {notificationsEnabled ? (
+            <Bell className="w-3 h-3" />
           ) : (
-            <>
-              <p className="text-xs text-muted-foreground font-body">
-                {isDemo ? 'Showing sample schedule' : 'Not connected'}
-              </p>
-              <p className="text-sm font-body text-foreground">
-                Connect Google Calendar for real reminders
-              </p>
-            </>
+            <BellOff className="w-3 h-3" />
           )}
-        </div>
-        {connectedEmail ? (
-          <button
-            onClick={disconnectGoogle}
-            className="flex items-center gap-1.5 text-xs font-body px-3 py-1.5 rounded-full"
-            style={{ background: 'hsl(var(--muted) / 0.5)', color: 'hsl(var(--muted-foreground))' }}
-          >
-            <LogOut className="w-3 h-3" /> Disconnect
-          </button>
-        ) : (
-          <button
-            onClick={connectGoogle}
-            disabled={connecting}
-            className="flex items-center gap-1.5 text-xs font-body px-3 py-1.5 rounded-full disabled:opacity-60"
-            style={{ background: 'hsl(var(--primary) / 0.12)', color: 'hsl(var(--primary))' }}
-          >
-            {connecting ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <Link2 className="w-3 h-3" />
-            )}
-            Connect
-          </button>
-        )}
+          {notificationsEnabled ? 'Notifications on' : 'Enable notifications'}
+        </button>
       </div>
 
       {notificationPermission === 'denied' && (
@@ -251,40 +100,32 @@ export default function CalendarNudges({ animationDelay = 0 }: Props) {
       )}
 
       {/* Today's schedule overview */}
-      {events.length > 0 && (
-        <div className="card-surface p-4 mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-muted-foreground font-body">
-              {isDemo ? "Today's schedule (sample)" : "Today's calendar"}
-            </p>
-            {syncing && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {events.slice(0, 5).map((ev, i) => (
-              <span
-                key={i}
-                className="text-xs font-body px-2 py-1 rounded"
-                style={{
-                  background:
-                    ev.type === 'meeting'
-                      ? 'hsl(var(--primary) / 0.1)'
-                      : ev.type === 'break'
-                        ? 'hsl(var(--secondary) / 0.1)'
-                        : 'hsl(var(--muted) / 0.3)',
-                  color: 'hsl(var(--foreground) / 0.8)',
-                }}
-              >
-                {ev.startTime} {ev.title}
-              </span>
-            ))}
-            {events.length > 5 && (
-              <span className="text-xs font-body text-muted-foreground px-2 py-1">
-                +{events.length - 5} more
-              </span>
-            )}
-          </div>
+      <div className="card-surface p-4 mb-4">
+        <p className="text-xs text-muted-foreground font-body mb-2">Today's schedule</p>
+        <div className="flex flex-wrap gap-2">
+          {events.slice(0, 5).map((ev, i) => (
+            <span
+              key={i}
+              className="text-xs font-body px-2 py-1 rounded"
+              style={{
+                background: ev.type === 'meeting'
+                  ? 'hsl(var(--primary) / 0.1)'
+                  : ev.type === 'break'
+                    ? 'hsl(var(--secondary) / 0.1)'
+                    : 'hsl(var(--muted) / 0.3)',
+                color: 'hsl(var(--foreground) / 0.8)',
+              }}
+            >
+              {ev.startTime} {ev.title}
+            </span>
+          ))}
+          {events.length > 5 && (
+            <span className="text-xs font-body text-muted-foreground px-2 py-1">
+              +{events.length - 5} more
+            </span>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Free slots */}
       {freeSlots.length > 0 && (
@@ -295,7 +136,10 @@ export default function CalendarNudges({ animationDelay = 0 }: Props) {
               <span
                 key={i}
                 className="text-xs font-body px-2.5 py-1 rounded flex items-center gap-1"
-                style={{ background: 'hsl(76 86% 67% / 0.08)', color: 'hsl(76 86% 67%)' }}
+                style={{
+                  background: 'hsl(76 86% 67% / 0.08)',
+                  color: 'hsl(76 86% 67%)',
+                }}
               >
                 <Clock className="w-3 h-3" />
                 {slot.startTime}–{slot.endTime} ({slot.durationMin}m)
@@ -340,9 +184,7 @@ export default function CalendarNudges({ animationDelay = 0 }: Props) {
       )}
 
       <p className="text-xs text-muted-foreground font-body italic mb-2">
-        {connectedEmail
-          ? 'Synced with your calendar • reminders adapt to free windows'
-          : 'Connect your calendar for personalized reminders'}
+        Based on your calendar schedule • reminders adapt to your day
       </p>
     </motion.div>
   );
