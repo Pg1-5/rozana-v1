@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, BellOff, Calendar, Clock } from 'lucide-react';
+import { Bell, BellOff, Calendar, Clock, Link as LinkIcon, RefreshCw } from 'lucide-react';
 import {
   CalendarEvent,
   SmartNudge,
@@ -11,17 +11,71 @@ import {
   requestNotificationPermission,
   scheduleAllNotifications,
 } from '@/lib/calendar-nudges';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   animationDelay?: number;
 }
 
+function toHHmm(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+}
+
 export default function CalendarNudges({ animationDelay = 0 }: Props) {
-  const [events] = useState<CalendarEvent[]>(getDemoCalendar);
+  const [events, setEvents] = useState<CalendarEvent[]>(getDemoCalendar());
   const [nudges, setNudges] = useState<SmartNudge[]>([]);
   const [freeSlots, setFreeSlots] = useState<FreeSlot[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [connected, setConnected] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [usingDemo, setUsingDemo] = useState(true);
+
+  const loadGoogleEvents = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('google-calendar-sync', { body: {} });
+      if (error || !data) {
+        setSyncing(false);
+        return;
+      }
+      if (data.connected) {
+        setConnected(true);
+        setGoogleEmail(data.email ?? null);
+        if (Array.isArray(data.events) && data.events.length > 0) {
+          const mapped: CalendarEvent[] = data.events.map((e: any) => ({
+            title: e.title,
+            startTime: toHHmm(e.start),
+            endTime: toHHmm(e.end),
+            type: 'meeting',
+          }));
+          setEvents(mapped);
+          setUsingDemo(false);
+        } else {
+          setUsingDemo(false);
+          setEvents([]);
+        }
+      }
+    } catch (_) {
+      // silent
+    }
+    setSyncing(false);
+  };
+
+  const connectGoogle = async () => {
+    const redirectUri = `${window.location.origin}/calendar-callback`;
+    const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
+      body: { action: 'start', redirect_uri: redirectUri },
+    });
+    if (error || !data?.url) return;
+    window.location.href = data.url;
+  };
+
+  useEffect(() => {
+    loadGoogleEvents();
+  }, []);
 
   useEffect(() => {
     const generated = generateSmartNudges(events);
@@ -35,6 +89,7 @@ export default function CalendarNudges({ animationDelay = 0 }: Props) {
       }
     }
   }, [events]);
+
 
   const toggleNotifications = async () => {
     if (notificationsEnabled) {
@@ -92,6 +147,41 @@ export default function CalendarNudges({ animationDelay = 0 }: Props) {
           {notificationsEnabled ? 'Notifications on' : 'Enable notifications'}
         </button>
       </div>
+
+      {/* Google Calendar connection */}
+      <div className="card-surface p-3 mb-4 flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs font-body text-foreground">
+            {connected ? `Synced with ${googleEmail ?? 'Google Calendar'}` : 'Connect Google Calendar'}
+          </p>
+          <p className="text-[11px] font-body text-muted-foreground">
+            {connected
+              ? usingDemo
+                ? 'No events today — using sample schedule'
+                : 'Reminders adapt to your real busy/free windows'
+              : 'Get reminders based on your real schedule'}
+          </p>
+        </div>
+        {connected ? (
+          <button
+            onClick={loadGoogleEvents}
+            disabled={syncing}
+            className="flex items-center gap-1.5 text-xs font-body px-3 py-1.5 rounded-full bg-muted/50 text-muted-foreground"
+          >
+            <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing' : 'Resync'}
+          </button>
+        ) : (
+          <button
+            onClick={connectGoogle}
+            className="flex items-center gap-1.5 text-xs font-body px-3 py-1.5 rounded-full bg-primary text-primary-foreground"
+          >
+            <LinkIcon className="w-3 h-3" />
+            Connect
+          </button>
+        )}
+      </div>
+
 
       {notificationPermission === 'denied' && (
         <p className="text-xs text-muted-foreground font-body mb-3 italic">
