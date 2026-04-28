@@ -43,7 +43,7 @@ const SHARE_MESSAGES: Record<string, string[]> = {
 };
 
 export default function Index() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [screen, setScreen] = useState<Screen>('onboarding');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [checkIn, setCheckIn] = useState<CheckInData | null>(null);
@@ -67,10 +67,17 @@ export default function Index() {
 
   // Pull name from signed-in user's profile so onboarding can prefill it
   useEffect(() => {
+    if (authLoading) return;
+
     if (!user) {
+      setPrefillName(undefined);
       setPrefillReady(true);
       return;
     }
+
+    let cancelled = false;
+    setPrefillReady(false);
+
     const metaName =
       (user.user_metadata?.full_name as string | undefined)?.trim() ||
       (user.user_metadata?.name as string | undefined)?.trim();
@@ -82,12 +89,16 @@ export default function Index() {
       .eq('user_id', user.id)
       .maybeSingle()
       .then(({ data }) => {
+        if (cancelled) return;
         const dbName = data?.full_name?.trim();
         const finalName = dbName || metaName || emailName || undefined;
         if (finalName) setPrefillName(finalName);
         setPrefillReady(true);
       });
-  }, [user]);
+    return () => {
+      cancelled = true;
+    };
+  }, [user, authLoading]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
