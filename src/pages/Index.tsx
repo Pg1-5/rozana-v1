@@ -172,6 +172,7 @@ export default function Index() {
 
   switch (screen) {
     case 'onboarding':
+      if (!prefillReady) return <div className="min-h-screen bg-background" />;
       return <OnboardingFlow onComplete={handleOnboardingComplete} initialName={prefillName} />;
     case 'insight':
       return <InsightScreen profile={profile!} onContinue={() => goTo('checkin')} onBack={canGoBack ? goBack : undefined} onForward={canGoForward ? goForward : undefined} />;
