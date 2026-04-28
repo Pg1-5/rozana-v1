@@ -49,6 +49,7 @@ export default function Index() {
   const [checkIn, setCheckIn] = useState<CheckInData | null>(null);
   const [history, setHistory] = useState<Screen[]>([]);
   const [prefillName, setPrefillName] = useState<string | undefined>(undefined);
+  const [prefillReady, setPrefillReady] = useState(false);
 
   useEffect(() => {
     const saved = getProfile();
@@ -66,16 +67,25 @@ export default function Index() {
 
   // Pull name from signed-in user's profile so onboarding can prefill it
   useEffect(() => {
-    if (!user) return;
-    const metaName = (user.user_metadata?.full_name as string | undefined)?.trim();
-    if (metaName) setPrefillName(metaName);
+    if (!user) {
+      setPrefillReady(true);
+      return;
+    }
+    const metaName =
+      (user.user_metadata?.full_name as string | undefined)?.trim() ||
+      (user.user_metadata?.name as string | undefined)?.trim();
+    const emailName = user.email?.split('@')[0]?.replace(/[._-]+/g, ' ').trim();
+
     supabase
       .from('profiles')
       .select('full_name')
       .eq('user_id', user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (data?.full_name) setPrefillName(data.full_name);
+        const dbName = data?.full_name?.trim();
+        const finalName = dbName || metaName || emailName || undefined;
+        if (finalName) setPrefillName(finalName);
+        setPrefillReady(true);
       });
   }, [user]);
 
