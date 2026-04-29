@@ -30,6 +30,15 @@ async function refreshIfNeeded(admin: any, row: any) {
   return data.access_token;
 }
 
+function hasCalendarReadonlyScope(scope?: string | null) {
+  return (scope ?? "").split(/\s+/).includes("https://www.googleapis.com/auth/calendar.readonly");
+}
+
+function isInsufficientScopeError(data: any) {
+  return data?.error?.status === "PERMISSION_DENIED"
+    && data?.error?.details?.some((detail: any) => detail?.reason === "ACCESS_TOKEN_SCOPE_INSUFFICIENT");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -60,6 +69,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (!hasCalendarReadonlyScope(tokenRow.scope)) {
+      return new Response(JSON.stringify({
+        connected: false,
+        needsReconnect: true,
+        reason: "calendar_scope_missing",
+        events: [],
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const accessToken = await refreshIfNeeded(admin, tokenRow);
 
     const today = new Date();
@@ -77,6 +95,15 @@ Deno.serve(async (req) => {
     });
     const evData = await evRes.json();
     if (!evRes.ok) {
+      if (evRes.status === 403 && isInsufficientScopeError(evData)) {
+        return new Response(JSON.stringify({
+          connected: false,
+          needsReconnect: true,
+          reason: "calendar_scope_missing",
+          events: [],
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       return new Response(JSON.stringify({ error: "Calendar fetch failed", details: evData }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
