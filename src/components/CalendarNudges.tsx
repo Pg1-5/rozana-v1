@@ -32,6 +32,7 @@ export default function CalendarNudges({ animationDelay = 0 }: Props) {
   const [googleEmail, setGoogleEmail] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [usingDemo, setUsingDemo] = useState(true);
+  const [needsReconnect, setNeedsReconnect] = useState(false);
 
   const loadGoogleEvents = async () => {
     setSyncing(true);
@@ -41,9 +42,17 @@ export default function CalendarNudges({ animationDelay = 0 }: Props) {
         setSyncing(false);
         return;
       }
+      if (data.needsReconnect) {
+        setConnected(false);
+        setGoogleEmail(null);
+        setNeedsReconnect(true);
+        setSyncing(false);
+        return;
+      }
       if (data.connected) {
         setConnected(true);
         setGoogleEmail(data.email ?? null);
+        setNeedsReconnect(false);
         if (Array.isArray(data.events) && data.events.length > 0) {
           const mapped: CalendarEvent[] = data.events.map((e: any) => ({
             title: e.title,
@@ -152,13 +161,15 @@ export default function CalendarNudges({ animationDelay = 0 }: Props) {
       <div className="card-surface p-3 mb-4 flex items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-xs font-body text-foreground">
-            {connected ? `Synced with ${googleEmail ?? 'Google Calendar'}` : 'Connect Google Calendar'}
+            {connected ? `Synced with ${googleEmail ?? 'Google Calendar'}` : needsReconnect ? 'Reconnect Google Calendar' : 'Connect Google Calendar'}
           </p>
           <p className="text-[11px] font-body text-muted-foreground">
             {connected
               ? usingDemo
                 ? 'No events today — using sample schedule'
                 : 'Reminders adapt to your real busy/free windows'
+              : needsReconnect
+                ? 'Calendar permission needs a fresh approval'
               : 'Get reminders based on your real schedule'}
           </p>
         </div>
