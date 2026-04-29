@@ -134,15 +134,59 @@ export default function Index() {
     if (next) goTo(next);
   };
 
-  const handleOnboardingComplete = (p: UserProfile) => {
+  const handleOnboardingComplete = async (p: UserProfile) => {
     setProfile(p);
     saveProfile(p);
+    if (user) {
+      const { error } = await supabase
+        .from('user_profiles')
+        .upsert(
+          {
+            user_id: user.id,
+            name: p.name,
+            gender: p.gender,
+            age: p.age,
+            weight_kg: p.weight,
+            height_cm: p.height,
+            activity_level: p.activityLevel,
+            goal: p.goals?.[0] ?? null,
+            raw_profile: p as any,
+          },
+          { onConflict: 'user_id' }
+        );
+      if (error) {
+        console.error('Failed to save profile to Supabase', error);
+        toast.error('Could not save your profile. Please try again.');
+      }
+    }
     goTo('insight');
   };
 
-  const handleCheckInComplete = (data: CheckInData) => {
+  const handleCheckInComplete = async (data: CheckInData) => {
     setCheckIn(data);
     saveCheckIn(data);
+    if (user) {
+      const today = new Date().toISOString().slice(0, 10);
+      const { error } = await supabase
+        .from('daily_checkins')
+        .upsert(
+          {
+            user_id: user.id,
+            checkin_date: today,
+            energy: data.energy,
+            sleep: data.sleep,
+            mind: data.mind,
+            diet_preferences: data.dietPreferences,
+            kitchen_input: data.kitchenInput ?? null,
+            raw: data as any,
+          },
+          { onConflict: 'user_id,checkin_date' }
+        );
+      if (error) {
+        console.error('Failed to save check-in to Supabase', error);
+        toast.error('Could not save your check-in. Please try again.');
+      }
+    }
     goTo('dayplan');
   };
 
