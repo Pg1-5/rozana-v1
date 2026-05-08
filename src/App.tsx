@@ -8,7 +8,6 @@ import NotFound from "./pages/NotFound.tsx";
 import Auth from "./pages/Auth.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import Welcome from "./pages/Welcome.tsx";
-import CalendarCallback from "./pages/CalendarCallback.tsx";
 import { useAuth } from "@/hooks/use-auth";
 
 const queryClient = new QueryClient();
