@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Check, RefreshCw } from 'lucide-react';
 import ScreenNav from '@/components/ScreenNav';
-import CalendarNudges from '@/components/CalendarNudges';
+
 import {
   CheckInData,
   UserProfile,
@@ -381,11 +381,6 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
             </p>
           )}
         </motion.div>
-
-        {/* Smart calendar-based reminders */}
-        <div className="mb-10">
-          <CalendarNudges animationDelay={0.9} />
-        </div>
 
         <button
           onClick={onReflect}
