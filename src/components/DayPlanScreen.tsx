@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Check, RefreshCw } from 'lucide-react';
 import ScreenNav from '@/components/ScreenNav';
-import CalendarNudges from '@/components/CalendarNudges';
+
 import {
   CheckInData,
   UserProfile,
