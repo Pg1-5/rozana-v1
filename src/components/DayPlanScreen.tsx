@@ -382,11 +382,6 @@ export default function DayPlanScreen({ profile, checkIn, onReflect, onBack, onF
           )}
         </motion.div>
 
-        {/* Smart calendar-based reminders */}
-        <div className="mb-10">
-          <CalendarNudges animationDelay={0.9} />
-        </div>
-
         <button
           onClick={onReflect}
           className="w-full py-4 rounded-lg font-body font-medium text-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
