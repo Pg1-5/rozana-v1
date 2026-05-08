@@ -29,19 +29,36 @@ function saveLang(lang: RoziLang) {
 
 function pickVoice(lang: string, preferred: string[]): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices();
+
+  // Helper: detect female voice from name
+  const isFemale = (v: SpeechSynthesisVoice) => {
+    const n = v.name.toLowerCase();
+    const femaleMarkers = ['female', 'woman', 'girl', 'samantha', 'victoria', 'karen', 'tessa', 'moira', 'fiona', 'veena', 'lekha', 'piya', 'hazel', 'serena', 'kate', 'laura', 'alice', 'matilda', 'jessica', 'lily', 'sarah', 'zira', 'lesya', 'martha', 'catherine'];
+    return femaleMarkers.some(m => n.includes(m));
+  };
+
   // Exact lang match first
   const exact = voices.filter(v => v.lang.replace('_', '-').toLowerCase() === lang.toLowerCase());
   for (const v of exact) {
     if (preferred.some(k => v.name.toLowerCase().includes(k))) return v;
   }
-  if (exact.length) return exact[0];
+  const exactFemale = exact.find(isFemale);
+  if (exactFemale) return exactFemale;
+
   // Broader match
   const prefix = lang.split('-')[0];
   const broad = voices.filter(v => v.lang.startsWith(prefix));
   for (const v of broad) {
     if (preferred.some(k => v.name.toLowerCase().includes(k))) return v;
   }
-  return broad[0] || null;
+  const broadFemale = broad.find(isFemale);
+  if (broadFemale) return broadFemale;
+
+  // Last resort: any female voice on the system
+  const anyFemale = voices.find(isFemale);
+  if (anyFemale) return anyFemale;
+
+  return null;
 }
 
 function stripEmojis(text: string): string {
