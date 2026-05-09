@@ -158,7 +158,7 @@ export default function CheckInScreen({ name, onComplete, onBack }: Props) {
         {/* Diet preference */}
         <motion.div className="mt-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-muted-foreground font-body">What do you eat?</p>
+            <p className="text-sm text-muted-foreground font-body">What will you eat today?</p>
             <VoiceMicButton isListening={dietVoice.isListening} onToggle={dietVoice.toggle} />
           </div>
           <div className="flex gap-3">
